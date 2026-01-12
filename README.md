@@ -6,10 +6,10 @@
 
 | 項目 | 技術 |
 |------|------|
-| フロントエンド | Next.js 14 (TypeScript) |
-| バックエンド | Node.js + Express (TypeScript) |
+| フロントエンド | Next.js (TypeScript) + Tailwind CSS + shadcn/ui |
 | データベース | Supabase (PostgreSQL) |
 | 認証 | Supabase Auth |
+| ストレージ | Supabase Storage |
 | コンテナ | Docker / Docker Compose |
 | デプロイ | Vercel (frontend) / Supabase (DB) |
 
@@ -17,21 +17,38 @@
 
 ```
 program-tokku/
-├── docker-compose.yml      # Docker構成ファイル
-├── .env.example            # 環境変数テンプレート
-├── frontend/               # フロントエンド (Next.js)
-│   ├── Dockerfile
-│   ├── package.json
-│   └── src/
-│       ├── app/            # App Router
-│       ├── components/     # UIコンポーネント
-│       └── lib/
-│           └── supabase.ts # Supabaseクライアント
-└── backend/                # バックエンド (Express)
-    ├── Dockerfile
-    ├── package.json
+├── docker-compose.yml
+├── .env.example
+└── frontend/
     └── src/
-        └── index.ts        # エントリーポイント
+        ├── app/                      # ページ
+        │   ├── layout.tsx            # 共通レイアウト
+        │   ├── page.tsx              # ホーム（質問一覧）
+        │   ├── (auth)/               # 認証
+        │   │   ├── login/
+        │   │   ├── signup/
+        │   │   └── reset-password/
+        │   ├── questions/            # 質問
+        │   │   ├── [id]/             # 質問詳細
+        │   │   └── new/              # 質問投稿
+        │   ├── categories/           # カテゴリ
+        │   │   └── [tag]/            # カテゴリ別一覧
+        │   └── profile/              # プロフィール
+        │
+        ├── components/
+        │   ├── ui/                   # shadcn/ui
+        │   ├── layout/               # Header, Sidebar等
+        │   ├── questions/            # 質問関連
+        │   ├── auth/                 # 認証関連
+        │   ├── profile/              # プロフィール関連
+        │   ├── points/               # ポイント・ランク・モーダル
+        │   ├── common/               # 共通（タグ、いいね等）
+        │   └── features/             # 特徴説明
+        │
+        ├── hooks/                    # カスタムフック
+        ├── lib/                      # Supabase等
+        ├── types/                    # 型定義
+        └── constants/                # 定数（ポイント、ランク等）
 ```
 
 ---
@@ -40,25 +57,12 @@ program-tokku/
 
 ### 前提条件
 
-以下がインストールされていることを確認してください。
-
-- **Docker Desktop**
-  - Mac: https://docs.docker.com/desktop/install/mac-install/
-  - Windows: https://docs.docker.com/desktop/install/windows-install/
-
-- **Git**
-  - https://git-scm.com/downloads
-
-#### インストール確認コマンド
+- **Docker Desktop** がインストールされていること
+- **Git** がインストールされていること
 
 ```bash
-# Dockerの確認
+# 確認コマンド
 docker --version
-
-# Docker Composeの確認
-docker-compose --version
-
-# Gitの確認
 git --version
 ```
 
@@ -73,32 +77,26 @@ cd program-tokku
 
 ---
 
-### Step 2: Supabaseプロジェクトを作成
+### Step 2: Supabaseプロジェクトに参加
 
-> **注意**: チームで1つのプロジェクトを共有します。最初の1人が作成してください。
+プロジェクト管理者から **Supabaseプロジェクトへの招待** を受けてください。
 
-1. https://supabase.com にアクセス
-2. GitHubでログイン
-3. 「New Project」をクリック
-4. 以下を入力:
-   - **Name**: `program-tokku`
-   - **Database Password**: 安全なパスワード（メモしておく）
-   - **Region**: `Northeast Asia (Tokyo)`
-5. 「Create new project」をクリック
+1. 招待メールのリンクをクリック
+2. https://supabase.com にGitHubでログイン
+3. `program-tokku` プロジェクトが表示されることを確認
 
 ---
 
-### Step 3: Supabaseの接続情報を取得
+### Step 3: 接続情報を確認
 
-プロジェクト作成後、以下の情報を取得:
+Supabaseダッシュボードから接続情報を取得：
 
-#### API設定（Settings → API）
-- `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
-- `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+1. **Project URL**
+   - Settings → General → Project ID をコピー
+   - `https://[PROJECT_ID].supabase.co` の形式で使用
 
-#### Database設定（Settings → Database）
-- `Connection string` → `DATABASE_URL`
-  - `[YOUR-PASSWORD]` を作成時のパスワードに置き換える
+2. **API Key**
+   - Settings → API Keys → **Publishable key (default)** をコピー
 
 ---
 
@@ -108,163 +106,112 @@ cd program-tokku
 cp .env.example .env
 ```
 
-`.env` を編集して、Step 3で取得した値を設定:
+`.env` を編集:
 
 ```env
-# Supabase設定
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-DATABASE_URL=postgresql://postgres.xxxxx:password@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres
-
-# ポート設定
-BACKEND_PORT=3001
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxxxx
 FRONTEND_PORT=3000
 ```
 
 ---
 
-### Step 5: Supabaseパッケージをインストール
-
-```bash
-cd frontend
-npm install @supabase/supabase-js
-cd ..
-```
-
----
-
-### Step 6: Dockerコンテナを起動
+### Step 5: Dockerコンテナを起動
 
 ```bash
 docker-compose up --build
 ```
 
-以下のログが表示されれば起動成功:
+以下のログが表示されれば成功:
 
 ```
-program-tokku-backend  | Server is running on port 3001
-program-tokku-frontend | ▲ Next.js 14.x.x
+program-tokku-frontend | ▲ Next.js
 program-tokku-frontend |   - Local: http://localhost:3000
 ```
 
 ---
 
-### Step 7: 動作確認
+### Step 6: 動作確認
 
-| サービス | URL |
-|----------|-----|
-| フロントエンド | http://localhost:3000 |
-| バックエンドAPI | http://localhost:3001/health |
-| Supabaseダッシュボード | https://supabase.com/dashboard |
+| URL | 説明 |
+|-----|------|
+| http://localhost:3000 | アプリ |
+| https://supabase.com/dashboard | Supabaseダッシュボード |
 
 ---
 
 ## よく使うコマンド
 
-### コンテナの起動・停止
-
 ```bash
-# 起動（バックグラウンド）
-docker-compose up -d
-
-# 起動（ログを表示しながら）
+# 起動
 docker-compose up
+
+# バックグラウンドで起動
+docker-compose up -d
 
 # 停止
 docker-compose down
 
-# 再ビルド（パッケージ追加後など）
+# 再ビルド（パッケージ追加後）
 docker-compose up --build
-```
 
-### ログの確認
-
-```bash
-# 全サービスのログ
-docker-compose logs
-
-# 特定サービスのログ
-docker-compose logs frontend
-docker-compose logs backend
-
-# リアルタイムでログを監視
+# ログ確認
 docker-compose logs -f
-```
 
-### コンテナ内でコマンド実行
-
-```bash
-# フロントエンドでnpmコマンド実行
+# パッケージ追加
 docker-compose exec frontend npm install <パッケージ名>
-
-# バックエンドでnpmコマンド実行
-docker-compose exec backend npm install <パッケージ名>
 ```
 
 ---
 
 ## Supabaseの使い方
 
-### データベースにテーブルを作成
-
-Supabaseダッシュボード → Table Editor → New Table
-
-### フロントエンドからデータを取得
+### データ取得
 
 ```typescript
 import { supabase } from "@/lib/supabase";
 
-// データ取得
 const { data, error } = await supabase
   .from("questions")
   .select("*");
+```
 
-// データ挿入
+### データ挿入
+
+```typescript
 const { error } = await supabase
   .from("questions")
   .insert({ title: "質問タイトル", content: "質問内容" });
 ```
 
-### 認証（Supabase Auth）
+### 認証
 
 ```typescript
-import { supabase } from "@/lib/supabase";
-
 // サインアップ
-await supabase.auth.signUp({
-  email: "user@example.com",
-  password: "password",
-});
+await supabase.auth.signUp({ email, password });
 
 // ログイン
-await supabase.auth.signInWithPassword({
-  email: "user@example.com",
-  password: "password",
-});
+await supabase.auth.signInWithPassword({ email, password });
 
 // ログアウト
 await supabase.auth.signOut();
+
+// 現在のユーザー取得
+const { data: { user } } = await supabase.auth.getUser();
 ```
 
 ---
 
 ## トラブルシューティング
 
-### ポートが既に使用されている
+### ポートが使用中
 
-```bash
-# .envでポートを変更
-BACKEND_PORT=4001
+`.env` でポートを変更:
+```env
 FRONTEND_PORT=4000
 ```
 
-### Supabaseに接続できない
-
-1. `.env` の値が正しいか確認
-2. Supabaseダッシュボードでプロジェクトがアクティブか確認
-3. VPNを使っている場合は一時的にオフにする
-
-### node_modulesの不整合
+### パッケージの不整合
 
 ```bash
 docker-compose down
@@ -274,34 +221,19 @@ docker-compose up --build
 
 ---
 
-## 開発フロー
+## チームメンバーの招待（管理者向け）
 
-1. 新しいブランチを作成
-   ```bash
-   git checkout -b feature/機能名
-   ```
+Supabaseダッシュボード → **Settings** → **General** → **Team** → **Invite**
 
-2. Dockerを起動して開発
-   ```bash
-   docker-compose up
-   ```
-
-3. コードを変更（ホットリロードで自動反映）
-
-4. 変更をコミット・プッシュ
-   ```bash
-   git add .
-   git commit -m "機能の説明"
-   git push origin feature/機能名
-   ```
-
-5. プルリクエストを作成
+メールアドレスを入力して招待を送信してください。
 
 ---
 
-## ポート一覧
+## 開発フロー
 
-| サービス | ポート |
-|----------|--------|
-| フロントエンド (Next.js) | 3000 |
-| バックエンド (Express) | 3001 |
+1. ブランチ作成: `git checkout -b feature/機能名`
+2. Docker起動: `docker-compose up`
+3. コード変更（ホットリロードで自動反映）
+4. コミット: `git commit -m "説明"`
+5. プッシュ: `git push origin feature/機能名`
+6. プルリクエスト作成

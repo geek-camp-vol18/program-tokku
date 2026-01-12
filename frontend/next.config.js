@@ -1,12 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Docker環境でのホットリロードを有効化
-  webpack: (config) => {
-    config.watchOptions = {
-      poll: 1000,
-      aggregateTimeout: 300,
-    };
-    return config;
+  // Turbopack設定（Next.js 16+）
+  turbopack: {
+    // Docker環境でのホットリロード
   },
 };
 

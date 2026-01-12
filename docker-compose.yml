@@ -1,21 +1,4 @@
 services:
-  # バックエンド (Express)
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: program-tokku-backend
-    environment:
-      NODE_ENV: development
-      PORT: 3001
-      DATABASE_URL: ${DATABASE_URL}
-    ports:
-      - "${BACKEND_PORT:-3001}:3001"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    command: npm run dev
-
   # フロントエンド (Next.js)
   frontend:
     build:
@@ -24,7 +7,6 @@ services:
     container_name: program-tokku-frontend
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-3001}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     ports:
@@ -33,6 +15,4 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
-    depends_on:
-      - backend
     command: npm run dev
