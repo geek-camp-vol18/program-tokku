@@ -6,6 +6,7 @@ node_modules/
 .env.local
 .env.*.local
 
+.claude/
 # Next.js
 .next/
 out/
