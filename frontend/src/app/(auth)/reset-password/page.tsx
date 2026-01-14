@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Sprout, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Sprout, Eye, EyeOff, ArrowRight, CheckCircle2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
 
   if (isUpdated) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8">
+      <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-primary/20 via-primary/10 to-background">
         <div className="w-full max-w-md text-center">
           <div className="flex justify-center mb-6">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8">
+    <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-primary/20 via-primary/10 to-background">
       <div className="w-full max-w-md">
         {/* ロゴ */}
         <div className="flex flex-col items-center mb-8">
@@ -65,8 +65,11 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold text-foreground">パスワード再設定</h2>
-          <p className="text-muted-foreground mt-2">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <KeyRound className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">パスワード再設定</h2>
+          </div>
+          <p className="text-muted-foreground">
             新しいパスワードを入力してください
           </p>
         </div>

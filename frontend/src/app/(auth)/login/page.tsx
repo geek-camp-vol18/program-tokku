@@ -26,9 +26,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-gradient-to-br from-primary/20 via-primary/10 to-background">
       {/* 左側: ブランディング */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex-col justify-between p-12">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center gap-12 p-12">
         <div className="flex gap-3 items-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Sprout className="h-7 w-7" />

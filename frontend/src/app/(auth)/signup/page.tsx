@@ -26,16 +26,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-gradient-to-br from-primary/20 via-primary/10 to-background">
       {/* 左側: ブランディング */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex-col justify-between p-12">
-        <div>
-          <Link href="/" className="flex items-center gap-3">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center gap-12 p-12">
+        <div className="flex gap-3 items-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Sprout className="h-7 w-7" />
             </div>
             <span className="text-2xl font-bold text-foreground">プログラム特区</span>
-          </Link>
         </div>
 
         <div className="space-y-8">
@@ -142,18 +140,6 @@ export default function RegisterPage() {
               </p>
             </CardContent>
           </Card>
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            登録することで
-            <Link href="/terms" className="underline hover:text-foreground">
-              利用規約
-            </Link>
-            と
-            <Link href="/privacy" className="underline hover:text-foreground">
-              プライバシーポリシー
-            </Link>
-            に同意したものとみなされます
-          </p>
         </div>
       </div>
     </div>
