@@ -61,10 +61,6 @@ export default function RegisterPage() {
             ))}
           </div>
         </div>
-
-        <div className="text-sm text-muted-foreground">
-          © 2024 プログラム特区. All rights reserved.
-        </div>
       </div>
 
       {/* 右側: 登録フォーム */}
