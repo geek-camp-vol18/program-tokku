@@ -141,7 +141,7 @@ export default function LoginPage() {
               <p className="text-center text-sm text-muted-foreground">
                 アカウントをお持ちでない方
                 <Link
-                  href="/register"
+                  href="/signup"
                   className="ml-1 font-semibold text-primary hover:underline"
                 >
                   新規登録
