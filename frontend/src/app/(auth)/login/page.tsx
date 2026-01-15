@@ -94,7 +94,7 @@ export default function LoginPage() {
                       placeholder="example@mail.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-11"
+                      className="pl-10 h-11 focus-visible:ring-primary"
                     />
                   </div>
                 </div>
@@ -116,7 +116,7 @@ export default function LoginPage() {
                       placeholder="パスワードを入力"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pr-10 h-11"
+                      className="pr-10 h-11 focus-visible:ring-primary"
                     />
                     <button
                       type="button"
@@ -141,7 +141,7 @@ export default function LoginPage() {
               <p className="text-center text-sm text-muted-foreground">
                 アカウントをお持ちでない方
                 <Link
-                  href="/register"
+                  href="/signup"
                   className="ml-1 font-semibold text-primary hover:underline"
                 >
                   新規登録
