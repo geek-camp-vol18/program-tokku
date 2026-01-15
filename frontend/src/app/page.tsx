@@ -11,19 +11,78 @@ import { Card } from "@/components/ui/card";
 import { Clock, CheckCircle } from "lucide-react";
 
 import { QuestionCard } from "@/components/Home/QuestionCard";
-import type { Question } from "@/components/Home/types";
-import { getDummyQuestions } from "@/components/Home/dummyQuestions";
+import { supabase } from "@/lib/supabase";
+import type { QuestionCardModel, QuestionRow } from "@/components/Home/types";
+import { toQuestionCardModel } from "@/components/Home/types";
 
-type Filter = "all" | "open" | "solved";
+type Filter = "all" | "open" | "solved"; // solved = resolved を表示上そう呼ぶ
 
 export default function Home() {
   const [filter, setFilter] = useState<Filter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
 
+  // Supabase取得データ（UI用）
+  const [questions, setQuestions] = useState<QuestionCardModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const pageSize = 5;
 
-  const questions: Question[] = useMemo(() => getDummyQuestions(), []);
+  // 初回：Supabaseから質問一覧を取得
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchQuestions() {
+      setLoading(true);
+      setErrorMsg(null);
+
+      const { data, error } = await supabase
+        .from("questions")
+        .select(
+          `
+            id,
+            title,
+            content,
+            status,
+            created_at,
+            answer_count,
+            like_count,
+            profiles (
+              id,
+              username,
+              avatar_url
+            ),
+            question_tags (
+              tags ( name )
+            )
+          `
+        )
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (error) {
+        // ここにRLS/キー間違い等のエラーが出るので「Supabaseが使えるか」が判定できる
+        setErrorMsg(error.message);
+        setQuestions([]);
+        setLoading(false);
+        return;
+      }
+
+      const rows = (data ?? []) as unknown as QuestionRow[];
+      const models = rows.map(toQuestionCardModel);
+
+      setQuestions(models);
+      setLoading(false);
+    }
+
+    fetchQuestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 検索・フィルタが変わったら1ページ目に戻す
   useEffect(() => {
@@ -67,7 +126,6 @@ export default function Home() {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }, [totalPages]);
 
-  // global.css の primary / border / muted を使う
   const paginationBtnClass = (p?: number) => {
     const isActive = typeof p === "number" && p === page;
     return [
@@ -140,7 +198,18 @@ export default function Home() {
           <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[2fr_1fr]">
             {/* 左：質問一覧 */}
             <section className="space-y-4">
-              {filteredQuestions.length === 0 ? (
+              {loading ? (
+                <Card className="bg-card p-6 text-sm text-muted-foreground">
+                  読み込み中...
+                </Card>
+              ) : errorMsg ? (
+                <Card className="border-destructive/40 bg-card p-6 text-sm text-destructive">
+                  Supabase取得エラー: {errorMsg}
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    ※RLSが原因の場合は、questions / profiles / tags周りのSELECTポリシーが必要です
+                  </div>
+                </Card>
+              ) : filteredQuestions.length === 0 ? (
                 <Card className="border-dashed bg-card p-6 text-sm text-muted-foreground">
                   該当する質問がありません
                 </Card>

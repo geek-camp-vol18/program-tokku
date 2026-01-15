@@ -4,10 +4,10 @@ import { Heart, CheckCircle2, Clock3 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { Question } from "./types";
+import type { QuestionCardModel } from "./types";
 
 type Props = {
-  question: Question;
+  question: QuestionCardModel;
 };
 
 export function QuestionCard({ question }: Props) {
@@ -80,13 +80,12 @@ export function QuestionCard({ question }: Props) {
               <Badge
                 key={tag}
                 variant="outline"
-                className="bg-orange-50 text-orange-700 border-orange-200 font-normal">
-                           
+                className="bg-orange-50 text-orange-700 border-orange-200 font-normal"
+              >
                 {tag}
               </Badge>
-             ))}
+            ))}
           </div>
-
 
           {/* フッター */}
           <div className="flex items-center justify-between pt-2">
