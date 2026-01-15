@@ -76,7 +76,7 @@ export default function ResetPasswordPage() {
                     placeholder="8文字以上のパスワード"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10 h-11"
+                    className="pr-10 h-11 focus-visible:ring-primary"
                   />
                   <button
                     type="button"
@@ -101,7 +101,7 @@ export default function ResetPasswordPage() {
                     placeholder="パスワードを再入力"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pr-10 h-11"
+                    className="pr-10 h-11 focus-visible:ring-primary"
                   />
                   <button
                     type="button"

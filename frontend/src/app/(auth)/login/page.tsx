@@ -94,7 +94,7 @@ export default function LoginPage() {
                       placeholder="example@mail.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-11"
+                      className="pl-10 h-11 focus-visible:ring-primary"
                     />
                   </div>
                 </div>
@@ -116,7 +116,7 @@ export default function LoginPage() {
                       placeholder="パスワードを入力"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pr-10 h-11"
+                      className="pr-10 h-11 focus-visible:ring-primary"
                     />
                     <button
                       type="button"

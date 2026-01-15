@@ -94,7 +94,7 @@ export default function RegisterPage() {
                       placeholder="ユーザー名を入力"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10 h-11"
+                      className="pl-10 h-11 focus-visible:ring-primary"
                     />
                   </div>
                 </div>
@@ -109,7 +109,7 @@ export default function RegisterPage() {
                       placeholder="example@mail.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-11"
+                      className="pl-10 h-11 focus-visible:ring-primary"
                     />
                   </div>
                 </div>
@@ -123,7 +123,7 @@ export default function RegisterPage() {
                       placeholder="8文字以上のパスワード"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pr-10 h-11"
+                      className="pr-10 h-11 focus-visible:ring-primary"
                     />
                     <button
                       type="button"
