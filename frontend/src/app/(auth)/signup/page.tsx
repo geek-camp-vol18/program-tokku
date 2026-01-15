@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Sprout, Mail, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Sprout, Mail, Eye, EyeOff, ArrowRight, CheckCircle2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,12 +17,13 @@ const features = [
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Register:", { email, password });
+    console.log("Register:", { username, email, password });
   };
 
   return (
@@ -81,8 +82,23 @@ export default function RegisterPage() {
 
           <Card className="border-0 shadow-none lg:shadow-xl lg:border">
             <CardContent className="p-0 lg:p-6 space-y-6">
-              {/* メール登録 */}
+              {/* ユーザー名 */}
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">ユーザー名</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="ユーザー名を入力"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="pl-10 h-11"
+                    />
+                  </div>
+                </div>
+              {/* メール登録 */}
                 <div className="space-y-2">
                   <Label htmlFor="email">メールアドレス</Label>
                   <div className="relative">
