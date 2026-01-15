@@ -1,29 +1,33 @@
 // 質問関連の型定義
 
+// 質問（questionsテーブル）
 export interface Question {
   id: string;
-  user_id: string;
-  title: string;
-  content: string;
-  image_url: string | null;
-  status: "open" | "closed";
-  created_at: string;
+  user_id: string;           // 投稿者ID
+  title: string;             // タイトル
+  content: string;           // 内容
+  image_url: string | null;  // 添付画像URL
+  status: "open" | "closed"; // open=募集中, closed=解決済み
+  created_at: string;        // 投稿日時
 }
 
+// タグ（tagsテーブル）
 export interface Tag {
   id: string;
-  name: string;
+  name: string; // タグ名（Python, React等）
 }
 
+// 質問とタグの中間テーブル（question_tagsテーブル）
 export interface QuestionTag {
   id: string;
   question_id: string;
   tag_id: string;
 }
 
+// いいね（likesテーブル）
 export interface Like {
   id: string;
-  user_id: string;
-  question_id: string;
+  user_id: string;     // いいねしたユーザーID
+  question_id: string; // いいねされた質問ID
   created_at: string;
 }
