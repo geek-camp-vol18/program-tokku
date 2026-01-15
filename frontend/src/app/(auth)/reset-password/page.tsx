@@ -54,16 +54,6 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-primary/20 via-primary/10 to-background">
       <div className="w-full max-w-md">
-        {/* ロゴ */}
-        <div className="flex flex-col items-center mb-8">
-          <Link href="/" className="flex items-center gap-3 mb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Sprout className="h-7 w-7" />
-            </div>
-            <span className="text-xl font-bold text-foreground">プログラム特区</span>
-          </Link>
-        </div>
-
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
             <KeyRound className="h-6 w-6 text-primary" />
