@@ -1,32 +1,31 @@
 "use client";
 
-import { useMemo, useEffect, useMemo as _useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
-import { FeaturePanel } from "@/components/home/FeaturePanel";
+import { FeaturePanel } from "@/components/Home/FeaturePanel";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Clock, CheckCircle } from "lucide-react";
 
-import { QuestionCard } from "@/components/questions/QuestionCard";
-import type { Question } from "@/components/questions/types";
-import { getDummyQuestions } from "@/components/questions/dummyQuestions";
+import { QuestionCard } from "@/components/Home/QuestionCard";
+import type { Question } from "@/components/Home/types";
+import { getDummyQuestions } from "@/components/Home/dummyQuestions";
 
 type Filter = "all" | "open" | "solved";
 
 export default function Home() {
   const [filter, setFilter] = useState<Filter>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  const pageSize = 5;
 
   const questions: Question[] = useMemo(() => getDummyQuestions(), []);
 
-  // ページネーション（動く版）
-  const [page, setPage] = useState<number>(1);
-  const pageSize = 5; // ← ここで 5/6/10 など調整OK
-
-  // 検索・フィルタが変わったら1ページ目に戻す（UX的に自然）
+  // 検索・フィルタが変わったら1ページ目に戻す
   useEffect(() => {
     setPage(1);
   }, [filter, searchQuery]);
@@ -36,7 +35,6 @@ export default function Home() {
     const q = searchQuery.trim().toLowerCase();
 
     return questions.filter((item) => {
-      // filter
       const okByFilter =
         filter === "all"
           ? true
@@ -46,7 +44,6 @@ export default function Home() {
 
       if (!okByFilter) return false;
 
-      // search (title + excerpt)
       if (q.length === 0) return true;
 
       const haystack = `${item.title} ${item.excerpt}`.toLowerCase();
@@ -54,7 +51,6 @@ export default function Home() {
     });
   }, [questions, filter, searchQuery]);
 
-  // 総ページ数（最低1）
   const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
 
   // フィルタ結果が減ってページがはみ出したら丸める
@@ -62,24 +58,23 @@ export default function Home() {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  // paging
   const pagedQuestions = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filteredQuestions.slice(start, start + pageSize);
   }, [filteredQuestions, page, pageSize]);
 
-  // ページ番号を自動生成
   const pages = useMemo(() => {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }, [totalPages]);
 
+  // global.css の primary / border / muted を使う
   const paginationBtnClass = (p?: number) => {
     const isActive = typeof p === "number" && p === page;
     return [
       "h-9 px-4 rounded-lg",
       isActive
-        ? "border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-50"
-        : "hover:bg-muted",
+        ? "border border-primary text-primary bg-primary/10 hover:bg-primary/10"
+        : "border border-border bg-card hover:bg-muted",
     ].join(" ");
   };
 
@@ -87,18 +82,13 @@ export default function Home() {
   const isNextDisabled = page >= totalPages;
 
   return (
-    <div className="min-h-screen bg-muted/60">
-      {/* 共通ヘッダー */}
+    <div className="min-h-screen bg-muted">
       <Header />
 
-      {/* ヘッダー下：サイドバー + メイン */}
       <div className="mx-auto flex w-full max-w-7xl">
-        {/* 共通サイドバー（lg以上で表示） */}
         <Sidebar />
 
-        {/* メインコンテンツ */}
         <main className="w-full flex-1 px-6 py-8">
-          {/* 上部 */}
           <header className="space-y-4">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">質問一覧</h1>
@@ -110,7 +100,7 @@ export default function Home() {
             {/* 検索 */}
             <div className="max-w-xl">
               <Input
-                className="bg-white"
+                className="bg-card"
                 placeholder="キーワードで質問を検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -147,13 +137,11 @@ export default function Home() {
             </div>
           </header>
 
-          {/* 中央（質問一覧 + 右カード） */}
           <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[2fr_1fr]">
             {/* 左：質問一覧 */}
             <section className="space-y-4">
-              {/* Empty */}
               {filteredQuestions.length === 0 ? (
-                <Card className="border-dashed bg-white p-6 text-sm text-muted-foreground">
+                <Card className="border-dashed bg-card p-6 text-sm text-muted-foreground">
                   該当する質問がありません
                 </Card>
               ) : (
@@ -164,7 +152,7 @@ export default function Home() {
 
                   {/* ページネーション */}
                   <div className="pt-4">
-                    <div className="inline-flex items-center gap-2 rounded-xl border bg-white p-2 shadow-sm">
+                    <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-sm">
                       <Button
                         variant="ghost"
                         className={paginationBtnClass()}
@@ -177,7 +165,7 @@ export default function Home() {
                       {pages.map((p) => (
                         <Button
                           key={p}
-                          variant="outline"
+                          variant="ghost"
                           className={paginationBtnClass(p)}
                           onClick={() => setPage(p)}
                         >

@@ -6,10 +6,11 @@ import { ShieldCheck, Zap, Trophy } from "lucide-react";
 
 export function FeaturePanel() {
   return (
-    <Card className="shadow-sm">
+    <Card className="border border-border bg-card shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">プログラム特区の特徴</CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-5 pt-2">
         <FeatureItem
           icon={<ShieldCheck className="h-5 w-5" />}
@@ -42,11 +43,12 @@ function FeatureItem({
 }) {
   return (
     <div className="flex gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-primary/10 text-primary">
         {icon}
       </div>
+
       <div className="min-w-0">
-        <div className="font-semibold leading-6">{title}</div>
+        <div className="font-semibold leading-6 text-foreground">{title}</div>
         <div className="text-sm text-muted-foreground">{description}</div>
       </div>
     </div>
