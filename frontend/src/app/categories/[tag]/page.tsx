@@ -1,49 +1,54 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { SiPython, SiJavascript, SiReact, SiTypescript, SiNextdotjs, SiNodedotjs, SiHtml5, SiCss3, SiGit } from "react-icons/si";
-import { Code } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Heart, CheckCircle2, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
-// タグとアイコンのマッピング
-const tagIcons: Record<string, React.ReactNode> = {
-  "Python": <SiPython className="w-8 h-8 text-[#3776AB]" />,
-  "JavaScript": <SiJavascript className="w-8 h-8 text-[#F7DF1E]" />,
-  "React": <SiReact className="w-8 h-8 text-[#61DAFB]" />,
-  "TypeScript": <SiTypescript className="w-8 h-8 text-[#3178C6]" />,
-  "Next.js": <SiNextdotjs className="w-8 h-8 text-foreground" />,
-  "Node.js": <SiNodedotjs className="w-8 h-8 text-[#339933]" />,
-  "HTML": <SiHtml5 className="w-8 h-8 text-[#E34F26]" />,
-  "CSS": <SiCss3 className="w-8 h-8 text-[#1572B6]" />,
-  "Git": <SiGit className="w-8 h-8 text-[#F05032]" />,
-};
-
-const DefaultIcon = () => <Code className="w-8 h-8 text-muted-foreground" />;
 
 // TODO: Supabaseから質問一覧を取得する
-// 現在はモックデータを使用
 const mockQuestions = [
   {
     id: "1",
-    title: "Reactでstateが更新されません",
+    title: "React useEffectで無限ループが発生してしまいます",
+    content: "コンポーネントがマウントされた時にAPIからデータを取得したいのですが、useEffectの中でsetStateを呼ぶと無限ループになってしまいます...",
     status: "open" as const,
-    created_at: "2024-01-16T12:00:00Z",
-    user: { username: "田中太郎" },
+    created_at: "5分前",
+    answerCount: 3,
+    likeCount: 12,
+    tags: ["React", "バグ"],
+    user: {
+      username: "tanaka",
+      rank: "初心者",
+      avatarInitial: "T",
+    },
   },
   {
     id: "2",
-    title: "useEffectの依存配列について",
+    title: "React Routerでページ遷移ができない",
+    content: "React Router v6を使っているのですが、Linkコンポーネントでページ遷移しようとしてもURLは変わるのに画面が更新されません...",
     status: "closed" as const,
-    created_at: "2024-01-15T10:00:00Z",
-    user: { username: "山田花子" },
+    created_at: "3時間前",
+    answerCount: 4,
+    likeCount: 8,
+    tags: ["React", "設計"],
+    user: {
+      username: "yamada",
+      rank: "中級者",
+      avatarInitial: "Y",
+    },
   },
   {
     id: "3",
-    title: "コンポーネントの再レンダリングを防ぎたい",
-    status: "open" as const,
-    created_at: "2024-01-14T08:00:00Z",
-    user: { username: "佐藤一郎" },
+    title: "Reactでのstate管理について",
+    content: "大規模なアプリケーションでのstate管理について悩んでいます。Redux、Zustand、Jotaiなど選択肢が多くてどれを使うべきか...",
+    status: "closed" as const,
+    created_at: "昨日",
+    answerCount: 6,
+    likeCount: 15,
+    tags: ["React", "設計"],
+    user: {
+      username: "kimura",
+      rank: "中級者",
+      avatarInitial: "K",
+    },
   },
 ];
 
@@ -60,22 +65,25 @@ export default async function CategoryTagPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* 戻るボタン */}
-      <Link href="/categories">
-        <Button variant="ghost" className="mb-4 gap-2">
-          <ArrowLeft className="w-4 h-4" />
-          カテゴリ一覧に戻る
-        </Button>
-      </Link>
+      {/* パンくずリスト */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+        <Link href="/" className="hover:text-foreground">ホーム</Link>
+        <span>/</span>
+        <Link href="/categories" className="hover:text-foreground">カテゴリ</Link>
+        <span>/</span>
+        <span className="text-foreground font-medium">{decodedTag}</span>
+      </nav>
 
-      {/* タグ情報 */}
-      <div className="flex items-center gap-4 mb-8">
-        {tagIcons[decodedTag] || <DefaultIcon />}
-        <div>
-          <h1 className="text-2xl font-bold">{decodedTag}</h1>
-          <p className="text-muted-foreground">{questions.length}件の質問</p>
-        </div>
+      {/* ヘッダー */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">{decodedTag}</h1>
+        <p className="text-muted-foreground">{decodedTag}に関する質問</p>
       </div>
+
+      {/* 質問数 */}
+      <p className="text-sm text-primary font-medium mb-4">
+        {questions.length}件の質問
+      </p>
 
       {/* 質問一覧 */}
       <div className="space-y-4">
@@ -87,18 +95,74 @@ export default async function CategoryTagPage({ params }: PageProps) {
           questions.map((question) => (
             <Link key={question.id} href={`/questions/${question.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={question.status === "open" ? "default" : "secondary"}>
-                      {question.status === "open" ? "募集中" : "解決済み"}
-                    </Badge>
+                <CardContent className="p-0">
+                  <div className="flex">
+                    {/* 左側: 回答数 */}
+                    <div className="flex flex-col items-center justify-center px-6 py-4 border-r min-w-[80px]">
+                      <span className="text-xl font-bold text-primary">{question.answerCount}</span>
+                      <span className="text-xs text-primary">回答</span>
+                    </div>
+
+                    {/* 右側: 質問内容 */}
+                    <div className="flex-1 p-4">
+                      {/* ステータスバッジ */}
+                      <div className="mb-2">
+                        {question.status === "open" ? (
+                          <Badge variant="outline" className="text-primary border-primary gap-1">
+                            <Clock className="w-3 h-3" />
+                            回答募集中
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-emerald-600 border-emerald-600 gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            解決済み
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* タイトル */}
+                      <h3 className="font-semibold text-lg mb-2">{question.title}</h3>
+
+                      {/* 内容抜粋 */}
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        {question.content}
+                      </p>
+
+                      {/* タグ */}
+                      <div className="flex gap-2 mb-3">
+                        {question.tags.map((tagName) => (
+                          <Badge key={tagName} variant="secondary" className="text-xs">
+                            {tagName}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      {/* ユーザー情報といいね */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {/* アバター */}
+                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
+                            {question.user.avatarInitial}
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            @{question.user.username}
+                          </span>
+                          <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                            {question.user.rank}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            ・{question.created_at}
+                          </span>
+                        </div>
+
+                        {/* いいね */}
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Heart className="w-4 h-4" />
+                          <span className="text-sm">{question.likeCount}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <CardTitle className="text-lg">{question.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {question.user.username} • {new Date(question.created_at).toLocaleDateString("ja-JP")}
-                  </p>
                 </CardContent>
               </Card>
             </Link>
