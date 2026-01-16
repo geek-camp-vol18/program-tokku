@@ -86,7 +86,7 @@ export default async function CategoryTagPage({ params }: PageProps) {
       </p>
 
       {/* 質問一覧 */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {questions.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             このカテゴリの質問はまだありません
@@ -94,15 +94,11 @@ export default async function CategoryTagPage({ params }: PageProps) {
         ) : (
           questions.map((question) => (
             <Link key={question.id} href={`/questions/${question.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer mb-4">
                 <CardContent className="p-0">
                   <div className="flex">
                     {/* 左側: 回答数（ステータスで色分け） */}
-                    <div className={`flex flex-col items-center justify-center px-6 py-4 border-r min-w-[80px] ${
-                      question.status === "open"
-                        ? "bg-amber-50 border-amber-200"
-                        : "bg-emerald-50 border-emerald-200"
-                    }`}>
+                    <div className="flex flex-col items-center justify-center px-5 py-4 min-w-[70px]">
                       <span className={`text-xl font-bold ${
                         question.status === "open" ? "text-amber-600" : "text-emerald-600"
                       }`}>{question.answerCount}</span>
