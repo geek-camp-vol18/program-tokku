@@ -23,22 +23,22 @@ const tagIcons: Record<string, React.ReactNode> = {
 
 // TODO: Supabaseからタグ一覧を取得する
 const tags = [
-  { id: "1", name: "Python", questionCount: 234, trend: 12 },
-  { id: "2", name: "JavaScript", questionCount: 189, trend: 8 },
-  { id: "3", name: "React", questionCount: 156, trend: 15 },
-  { id: "4", name: "TypeScript", questionCount: 98, trend: 22 },
-  { id: "5", name: "Node.js", questionCount: 87, trend: 5 },
-  { id: "6", name: "Vue", questionCount: 45, trend: 3 },
-  { id: "7", name: "Next.js", questionCount: 67, trend: 18 },
-  { id: "8", name: "Go", questionCount: 34, trend: 10 },
-  { id: "9", name: "Java", questionCount: 56, trend: -2 },
-  { id: "10", name: "Ruby", questionCount: 23, trend: 1 },
-  { id: "11", name: "PHP", questionCount: 45, trend: -5 },
-  { id: "12", name: "Rust", questionCount: 28, trend: 25 },
+  { id: "1", name: "Python", questionCount: 234 },
+  { id: "2", name: "JavaScript", questionCount: 189 },
+  { id: "3", name: "React", questionCount: 156 },
+  { id: "4", name: "TypeScript", questionCount: 98 },
+  { id: "5", name: "Node.js", questionCount: 87 },
+  { id: "6", name: "Vue", questionCount: 45 },
+  { id: "7", name: "Next.js", questionCount: 67 },
+  { id: "8", name: "Go", questionCount: 34 },
+  { id: "9", name: "Java", questionCount: 56 },
+  { id: "10", name: "Ruby", questionCount: 23 },
+  { id: "11", name: "PHP", questionCount: 45 },
+  { id: "12", name: "Rust", questionCount: 28 },
 ];
 
-// トレンドカテゴリ（上位5件）
-const trendingTags = [...tags].sort((a, b) => b.trend - a.trend).slice(0, 5);
+// 人気カテゴリ（質問数上位5件）
+const popularTags = [...tags].sort((a, b) => b.questionCount - a.questionCount).slice(0, 5);
 
 export default function CategoriesPage() {
   return (
@@ -66,16 +66,8 @@ export default function CategoriesPage() {
                 <Link key={tag.id} href={`/categories/${tag.name}`}>
                   <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="w-10 h-10 flex items-center justify-center">
-                          {tagIcons[tag.name]}
-                        </div>
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs ${tag.trend >= 0 ? "text-primary" : "text-destructive"}`}
-                        >
-                          {tag.trend >= 0 ? "+" : ""}{tag.trend}%
-                        </Badge>
+                      <div className="w-10 h-10 flex items-center justify-center mb-3">
+                        {tagIcons[tag.name]}
                       </div>
                       <div>
                         <p className="font-semibold">{tag.name}</p>
@@ -95,10 +87,10 @@ export default function CategoriesPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold">トレンドカテゴリ</h3>
+                <h3 className="font-semibold">人気カテゴリ</h3>
               </div>
               <div className="space-y-3">
-                {trendingTags.map((tag, index) => (
+                {popularTags.map((tag, index) => (
                   <Link
                     key={tag.id}
                     href={`/categories/${tag.name}`}
@@ -110,12 +102,9 @@ export default function CategoriesPage() {
                       </span>
                       <span className="font-medium">{tag.name}</span>
                     </div>
-                    <Badge
-                      variant="secondary"
-                      className="text-xs text-primary"
-                    >
-                      +{tag.trend}%
-                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {tag.questionCount}件
+                    </span>
                   </Link>
                 ))}
               </div>
