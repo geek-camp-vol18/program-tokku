@@ -42,7 +42,7 @@ const trendingTags = [...tags].sort((a, b) => b.trend - a.trend).slice(0, 5);
 
 export default function CategoriesPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="px-6 py-8 max-w-6xl">
       <div className="flex gap-8">
         {/* メインコンテンツ */}
         <div className="flex-1">
