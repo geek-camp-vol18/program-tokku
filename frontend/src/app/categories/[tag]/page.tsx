@@ -97,10 +97,18 @@ export default async function CategoryTagPage({ params }: PageProps) {
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-0">
                   <div className="flex">
-                    {/* 左側: 回答数 */}
-                    <div className="flex flex-col items-center justify-center px-6 py-4 border-r min-w-[80px]">
-                      <span className="text-xl font-bold text-primary">{question.answerCount}</span>
-                      <span className="text-xs text-primary">回答</span>
+                    {/* 左側: 回答数（ステータスで色分け） */}
+                    <div className={`flex flex-col items-center justify-center px-6 py-4 border-r min-w-[80px] ${
+                      question.status === "open"
+                        ? "bg-amber-50 border-amber-200"
+                        : "bg-emerald-50 border-emerald-200"
+                    }`}>
+                      <span className={`text-xl font-bold ${
+                        question.status === "open" ? "text-amber-600" : "text-emerald-600"
+                      }`}>{question.answerCount}</span>
+                      <span className={`text-xs ${
+                        question.status === "open" ? "text-amber-600" : "text-emerald-600"
+                      }`}>回答</span>
                     </div>
 
                     {/* 右側: 質問内容 */}
@@ -108,12 +116,12 @@ export default async function CategoryTagPage({ params }: PageProps) {
                       {/* ステータスバッジ */}
                       <div className="mb-2">
                         {question.status === "open" ? (
-                          <Badge variant="outline" className="text-primary border-primary gap-1">
+                          <Badge variant="outline" className="text-amber-600 border-amber-400 bg-amber-50 gap-1">
                             <Clock className="w-3 h-3" />
                             回答募集中
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-emerald-600 border-emerald-600 gap-1">
+                          <Badge variant="outline" className="text-emerald-600 border-emerald-400 bg-emerald-50 gap-1">
                             <CheckCircle2 className="w-3 h-3" />
                             解決済み
                           </Badge>
