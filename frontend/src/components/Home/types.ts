@@ -1,9 +1,8 @@
 export type QuestionStatus = "open" | "resolved"
 
 /**
- * Supabaseから取得する「質問（一覧用）」の形
+ * Supabaseから取得する質問（一覧用)の形
  * - profiles / tagsは join でネストして入ってくる想定
- * - answer_count / like_count は questions に持たせる前提（推奨）
  */
 export type QuestionRow = {
   id: string
@@ -12,7 +11,7 @@ export type QuestionRow = {
   status: QuestionStatus
   created_at: string
 
-  // 集計済み（questionsにカラム追加する想定）
+  // 回答数、いいね数
   answer_count: number
   like_count: number
 
@@ -29,10 +28,7 @@ export type QuestionRow = {
   }> | null
 }
 
-/**
- * QuestionCardに渡す「表示用モデル」
- * - excerpt / createdAtLabel などUIのための整形済み値
- */
+// QuestionCardに渡す「表示用モデル」
 export type QuestionCardModel = {
   id: string
   title: string
@@ -51,7 +47,6 @@ export type QuestionCardModel = {
 
 /**
  * 一覧取得結果（QuestionRow）→ カード表示（QuestionCardModel）へ変換
- * ※ createdAtLabel は一旦簡易でOK（後で "5分前" に置換可）
  */
 export function toQuestionCardModel(row: QuestionRow): QuestionCardModel {
   const authorName = row.profiles?.username ?? "名無し"
@@ -78,6 +73,7 @@ export function toQuestionCardModel(row: QuestionRow): QuestionCardModel {
   }
 }
 
+
 function makeExcerpt(content: string, maxLen = 90): string {
   const oneLine = (content ?? "").replace(/\s+/g, " ").trim()
   if (!oneLine) return ""
@@ -85,8 +81,6 @@ function makeExcerpt(content: string, maxLen = 90): string {
 }
 
 function formatCreatedAtLabel(createdAtIso: string): string {
-  // とりあえずは簡易表示。後で "5分前" に改善すればOK
-  // createdAtIso が壊れてても落ちないようにする
   const d = new Date(createdAtIso)
   if (Number.isNaN(d.getTime())) return ""
   return d.toLocaleDateString("ja-JP")

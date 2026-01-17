@@ -12,88 +12,98 @@ import { Clock, CheckCircle } from "lucide-react";
 
 import { QuestionCard } from "@/components/Home/QuestionCard";
 import { supabase } from "@/lib/supabase";
-import type { QuestionCardModel, QuestionRow } from "@/components/Home/types";
+import type { QuestionCardModel } from "@/components/Home/types";
 import { toQuestionCardModel } from "@/components/Home/types";
 
-type Filter = "all" | "open" | "solved"; // solved = resolved を表示上そう呼ぶ
+// 画面上のフィルタ状態
+type Filter = "all" | "open" | "solved";
 
 export default function Home() {
+  // UIの状態 
   const [filter, setFilter] = useState<Filter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
 
-  // Supabase取得データ（UI用）
+  // データ取得状態 
   const [questions, setQuestions] = useState<QuestionCardModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // 1ページに表示する件数
   const pageSize = 5;
 
-  // 初回：Supabaseから質問一覧を取得
+  // 初回のみ：Supabaseから質問一覧を取得 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false; 
 
     async function fetchQuestions() {
       setLoading(true);
       setErrorMsg(null);
 
+      // Supabase: questions を起点に関連テーブルを取得
       const { data, error } = await supabase
         .from("questions")
         .select(
           `
+          id,
+          title,
+          content,
+          status,
+          created_at,
+          profiles (
             id,
-            title,
-            content,
-            status,
-            created_at,
-            answer_count,
-            like_count,
-            profiles (
-              id,
-              username,
-              avatar_url
-            ),
-            question_tags (
-              tags ( name )
-            )
-          `
+            username,
+            avatar_url
+          ),
+          question_tags (
+            tags ( name )
+          ),
+          answers ( count ),
+          likes ( count )
+        `
         )
         .order("created_at", { ascending: false });
 
       if (cancelled) return;
 
       if (error) {
-        // ここにRLS/キー間違い等のエラーが出るので「Supabaseが使えるか」が判定できる
+        // 取得失敗：エラー表示＆空配列
         setErrorMsg(error.message);
         setQuestions([]);
         setLoading(false);
         return;
       }
 
-      const rows = (data ?? []) as unknown as QuestionRow[];
-      const models = rows.map(toQuestionCardModel);
+      // DBのrow → QuestionCardで使いやすい形に変換
+      const models = (data ?? []).map((row: any) =>
+        toQuestionCardModel({
+          ...row,
+          answer_count: row.answers?.[0]?.count ?? 0,
+          like_count: row.likes?.[0]?.count ?? 0,
+        })
+      );
 
       setQuestions(models);
       setLoading(false);
     }
 
     fetchQuestions();
-
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // 検索・フィルタが変わったら1ページ目に戻す
+  // 検索・フィルタ条件が変わったらページを1に戻す 
   useEffect(() => {
     setPage(1);
   }, [filter, searchQuery]);
 
-  // filter + search
+  // 検索・フィルタ適用後の質問一覧
   const filteredQuestions = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
     return questions.filter((item) => {
+      // フィルタ条件
       const okByFilter =
         filter === "all"
           ? true
@@ -102,42 +112,42 @@ export default function Home() {
           : item.status === "resolved";
 
       if (!okByFilter) return false;
+      if (!q) return true;
 
-      if (q.length === 0) return true;
-
-      const haystack = `${item.title} ${item.excerpt}`.toLowerCase();
-      return haystack.includes(q);
+      // タイトル + 抜粋 から検索
+      return `${item.title} ${item.excerpt}`.toLowerCase().includes(q);
     });
   }, [questions, filter, searchQuery]);
 
+  // ページ数計算 
   const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
 
-  // フィルタ結果が減ってページがはみ出したら丸める
+  // フィルタで件数が減って totalPages が小さくなった時の補正
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
+  // 現在ページ分の切り出し
   const pagedQuestions = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filteredQuestions.slice(start, start + pageSize);
   }, [filteredQuestions, page, pageSize]);
 
-  const pages = useMemo(() => {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }, [totalPages]);
-
+  // ページボタン表示用・見た目
+  const pages = useMemo(
+    () => Array.from({ length: totalPages }, (_, i) => i + 1),
+    [totalPages]
+  );
+  
   const paginationBtnClass = (p?: number) => {
     const isActive = typeof p === "number" && p === page;
     return [
       "h-9 px-4 rounded-lg",
       isActive
-        ? "border border-primary text-primary bg-primary/10 hover:bg-primary/10"
+        ? "border border-primary text-primary bg-primary/10"
         : "border border-border bg-card hover:bg-muted",
     ].join(" ");
   };
-
-  const isPrevDisabled = page <= 1;
-  const isNextDisabled = page >= totalPages;
 
   return (
     <div className="min-h-screen bg-muted">
@@ -148,70 +158,35 @@ export default function Home() {
 
         <main className="w-full flex-1 px-6 py-8">
           <header className="space-y-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">質問一覧</h1>
-              <p className="text-sm text-muted-foreground">
-                みんなの疑問を解決しよう
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold">質問一覧</h1>
 
-            {/* 検索 */}
-            <div className="max-w-xl">
-              <Input
-                className="bg-card"
-                placeholder="キーワードで質問を検索..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            <Input
+              className="max-w-xl bg-card"
+              placeholder="キーワードで質問を検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
-            {/* フィルタ */}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={filter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("all")}
-              >
-                すべて
-              </Button>
-              <Button
-                variant={filter === "open" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("open")}
-                className="flex items-center gap-1.5"
-              >
-                <Clock className="h-4 w-4" />
+            <div className="flex gap-2">
+              <Button onClick={() => setFilter("all")}>すべて</Button>
+              <Button onClick={() => setFilter("open")}>
+                <Clock className="mr-1 h-4 w-4" />
                 未解決
               </Button>
-              <Button
-                variant={filter === "solved" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter("solved")}
-                className="flex items-center gap-1.5"
-              >
-                <CheckCircle className="h-4 w-4" />
+              <Button onClick={() => setFilter("solved")}>
+                <CheckCircle className="mr-1 h-4 w-4" />
                 解決済
               </Button>
             </div>
           </header>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[2fr_1fr]">
-            {/* 左：質問一覧 */}
+          <div className="mt-6 grid gap-6 md:grid-cols-[2fr_1fr]">
             <section className="space-y-4">
               {loading ? (
-                <Card className="bg-card p-6 text-sm text-muted-foreground">
-                  読み込み中...
-                </Card>
+                <Card className="p-6">読み込み中...</Card>
               ) : errorMsg ? (
-                <Card className="border-destructive/40 bg-card p-6 text-sm text-destructive">
-                  Supabase取得エラー: {errorMsg}
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    ※RLSが原因の場合は、questions / profiles / tags周りのSELECTポリシーが必要です
-                  </div>
-                </Card>
-              ) : filteredQuestions.length === 0 ? (
-                <Card className="border-dashed bg-card p-6 text-sm text-muted-foreground">
-                  該当する質問がありません
+                <Card className="p-6 text-destructive">
+                  Supabaseエラー: {errorMsg}
                 </Card>
               ) : (
                 <>
@@ -219,45 +194,23 @@ export default function Home() {
                     <QuestionCard key={q.id} question={q} />
                   ))}
 
-                  {/* ページネーション */}
-                  <div className="pt-4">
-                    <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-sm">
+                  <div className="flex gap-2 pt-4">
+                    {pages.map((p) => (
                       <Button
-                        variant="ghost"
-                        className={paginationBtnClass()}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={isPrevDisabled}
+                        key={p}
+                        className={paginationBtnClass(p)}
+                        onClick={() => setPage(p)}
                       >
-                        前へ
+                        {p}
                       </Button>
-
-                      {pages.map((p) => (
-                        <Button
-                          key={p}
-                          variant="ghost"
-                          className={paginationBtnClass(p)}
-                          onClick={() => setPage(p)}
-                        >
-                          {p}
-                        </Button>
-                      ))}
-
-                      <Button
-                        variant="ghost"
-                        className={paginationBtnClass()}
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={isNextDisabled}
-                      >
-                        次へ
-                      </Button>
-                    </div>
+                    ))}
                   </div>
                 </>
               )}
             </section>
 
-            {/* 右：特徴カード */}
-            <aside className="h-fit md:sticky md:top-24">
+            {/* 右側の特徴パネル */}
+            <aside className="md:sticky md:top-24">
               <FeaturePanel />
             </aside>
           </div>
