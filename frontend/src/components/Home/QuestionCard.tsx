@@ -3,8 +3,8 @@
 import type { QuestionListItem } from "@/components/Home/homeTypes";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { LikeButton } from "@/components/common/LikeButton";
 
 function makeExcerpt(content: string, maxLen = 90): string {
   const oneLine = (content ?? "").replace(/\s+/g, " ").trim();
@@ -164,10 +164,9 @@ export function QuestionCard({ question }: Props) {
               </div>
             </div>
 
-            {/* いいね数 */}
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Heart className="h-4 w-4" />
-              <span className="tabular-nums">{question.like_count}</span>
+            {/* いいね */}
+            <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+              <LikeButton questionId={question.id} initialLikeCount={question.like_count} />
             </div>
           </div>
         </div>

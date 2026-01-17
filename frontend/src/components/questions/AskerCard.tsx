@@ -1,6 +1,6 @@
 "use client";
 
-// 質問者情報カードコンポーネント
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/types/user";
@@ -40,9 +40,11 @@ export function AskerCard({ profile }: Props) {
         </div>
       </div>
 
-      <Button variant="outline" className="w-full">
-        プロフィールを見る
-      </Button>
+      <Link href={`/profile/${profile.id}`}>
+        <Button variant="outline" className="w-full">
+          プロフィールを見る
+        </Button>
+      </Link>
     </Card>
   );
 }
