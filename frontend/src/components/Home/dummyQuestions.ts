@@ -1,85 +1,70 @@
-import type { Question } from "@/components/questions/types";
+"use client";
 
-export function getDummyQuestions(): Question[] {
-  return [
-    {
-      id: "q1",
-      status: "open",
-      title: "React useEffectで無限ループが発生してしまいます",
-      excerpt:
-        "コンポーネントがマウントされた時にAPIからデータを取得したいのですが、useEffectの中でsetStateを呼ぶと無限ループになってしまいます…",
-      tags: ["React", "バグ"],
-      authorName: "tanaka",
-      authorInitial: "T",
-      authorBadge: "初心者",
-      createdAtLabel: "5分前",
-      answerCount: 3,
-      likeCount: 12,
-    },
-    {
-      id: "q2",
-      status: "open",
-      title: "Next.js(App Router)でserver actionsを使うときの設計が分かりません",
-      excerpt:
-        "フォーム送信をServer Actionsで実装したいのですが、バリデーションやエラーハンドリングの置き場所が迷っています。おすすめの構成ありますか？",
-      tags: ["Next.js", "TypeScript"],
-      authorName: "suzuki",
-      authorInitial: "S",
-      createdAtLabel: "32分前",
-      answerCount: 1,
-      likeCount: 4,
-    },
-    {
-      id: "q3",
-      status: "resolved",
-      title: "SupabaseのRow Level Securityで一覧が取得できなくなりました",
-      excerpt:
-        "RLSを有効化してポリシーを追加したら、selectが空配列になりました。auth.uid()周りの書き方が間違っている気がします。",
-      tags: ["Supabase", "SQL", "セキュリティ"],
-      authorName: "yamada",
-      authorInitial: "Y",
-      createdAtLabel: "1時間前",
-      answerCount: 2,
-      likeCount: 9,
-    },
-    {
-      id: "q4",
-      status: "open",
-      title: "Tailwindで2カラムの幅比率をきれいに保つ方法は？",
-      excerpt:
-        "md:grid-cols-[2fr_1fr] で作っていますが、カード内要素によって幅感が崩れます。min-w-0など必要でしょうか？",
-      tags: ["Tailwind", "UI"],
-      authorName: "kato",
-      authorInitial: "K",
-      createdAtLabel: "2時間前",
-      answerCount: 0,
-      likeCount: 1,
-    },
-    {
-      id: "q5",
-      status: "resolved",
-      title: "TypeScriptでUnion型の絞り込みがうまくいきません",
-      excerpt:
-        "in演算子やtypeofで絞り込んでいるつもりですが、プロパティにアクセスできずanyに逃げています。型ガードの書き方を教えてください。",
-      tags: ["TypeScript"],
-      authorName: "mori",
-      authorInitial: "M",
-      createdAtLabel: "昨日",
-      answerCount: 4,
-      likeCount: 20,
-    },
-    {
-      id: "q6",
-      status: "open",
-      title: "shadcn/uiのButtonのvariantをプロジェクト全体で統一したい",
-      excerpt:
-        "ボタン色をemerald基調に寄せたいのですが、components/ui/button.tsx をどう設計するのが安全ですか？上書きの方針が知りたいです。",
-      tags: ["shadcn/ui", "デザイン"],
-      authorName: "aiu",
-      authorInitial: "A",
-      createdAtLabel: "3日前",
-      answerCount: 1,
-      likeCount: 7,
-    },
-  ];
+import type { QuestionListItem } from "@/components/Home/homeTypes";
+
+function isoHoursAgo(h: number) {
+  return new Date(Date.now() - h * 60 * 60 * 1000).toISOString();
 }
+
+export const dummyQuestions: QuestionListItem[] = [
+  {
+    id: "q1",
+    user_id: "u1",
+    title: "TypeScriptの型エラーが解消できません",
+    content:
+      "Genericsを使った関数を書いているのですが、`Type 'T' is not assignable to type 'string'` というエラーが出て困っています。どこを直せば良いでしょうか？",
+    image_url: null,
+    status: "open",
+    created_at: isoHoursAgo(3),
+
+    answer_count: 2,
+    like_count: 15,
+    tags: ["TypeScript", "バグ"],
+    author: {
+      id: "u1",
+      username: "yamada",
+      avatar_url: null,
+      rank_name: "中級者",
+    },
+  },
+  {
+    id: "q2",
+    user_id: "u2",
+    title: "Next.jsでSupabaseの取得が空になります",
+    content:
+      "selectの書き方が悪いのか data が null になります。RLSや権限設定も影響しますか？最低限のチェックポイントを知りたいです。",
+    image_url: null,
+    status: "open",
+    created_at: isoHoursAgo(10),
+
+    answer_count: 0,
+    like_count: 3,
+    tags: ["Next.js", "Supabase"],
+    author: {
+      id: "u2",
+      username: "suzuki",
+      avatar_url: null,
+      rank_name: "初級者",
+    },
+  },
+  {
+    id: "q3",
+    user_id: "u3",
+    title: "ReactのuseEffectの依存配列がよくわかりません",
+    content:
+      "依存配列に何を入れるべきかで無限ループになったりします。基本ルールとよくあるミスを教えてください。",
+    image_url: null,
+    status: "closed",
+    created_at: isoHoursAgo(30),
+
+    answer_count: 4,
+    like_count: 21,
+    tags: ["React", "useEffect"],
+    author: {
+      id: "u3",
+      username: "tanaka",
+      avatar_url: null,
+      rank_name: "上級者",
+    },
+  },
+];
