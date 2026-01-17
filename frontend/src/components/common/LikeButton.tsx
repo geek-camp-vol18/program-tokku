@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 
 type Props = {
@@ -81,15 +80,18 @@ export function LikeButton({ questionId, initialLikeCount, onLikeChanged }: Prop
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
+    <button
+      type="button"
       onClick={handleLike}
       disabled={isLoading}
-      className={`gap-1 ${isLiked ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-red-500"}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md transition-colors cursor-pointer ${
+        isLiked
+          ? "text-red-500 hover:text-red-600 hover:bg-red-50"
+          : "text-muted-foreground hover:text-red-500 hover:bg-muted"
+      } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
     >
-      <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
-      <span className="tabular-nums">{likeCount}</span>
-    </Button>
+      <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
+      <span className="tabular-nums text-sm font-medium">{likeCount}</span>
+    </button>
   );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paperclip, Code, Send } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 import { AnswerCard, type AnswerRow } from "@/components/questions/AnswerCard";
@@ -100,8 +100,8 @@ export function AnswerSection({
       )}
 
       {/* 回答投稿フォーム */}
-      <Card className="p-6 space-y-3">
-        <div className="text-sm font-medium">回答を投稿する</div>
+      <Card className="p-6 space-y-4">
+        <div className="font-medium">回答を投稿する</div>
 
         {error && (
           <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
@@ -114,17 +114,36 @@ export function AnswerSection({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={5}
+          className="resize-none"
         />
 
-        <div className="flex justify-end">
-          <Button onClick={handleSubmit} disabled={isSubmitting || !content.trim()}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground">
+              <Paperclip className="h-4 w-4" />
+              ファイル添付
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground">
+              <Code className="h-4 w-4" />
+              コード挿入
+            </Button>
+          </div>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !content.trim()}
+            className="gap-1.5"
+          >
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 投稿中...
               </>
             ) : (
-              "回答を投稿"
+              <>
+                <Send className="h-4 w-4" />
+                回答を投稿
+              </>
             )}
           </Button>
         </div>
