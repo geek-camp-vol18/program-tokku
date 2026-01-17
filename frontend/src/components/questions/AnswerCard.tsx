@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Award } from "lucide-react";
 
 import type { Answer } from "@/types/answer";
+import { MarkdownPreview } from "@/components/questions/MarkdownPreview";
 
 export type ProfileJoined = {
   id: string;
@@ -79,9 +80,9 @@ export function AnswerCard({ answer, showBestAnswerButton, onSelectBestAnswer }:
         ) : null}
       </div>
 
-      <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
-        {answer.content}
-      </p>
+      <div className="text-sm">
+        <MarkdownPreview content={answer.content} />
+      </div>
 
       {/* ベストアンサー選択ボタン */}
       {showBestAnswerButton && onSelectBestAnswer && (
