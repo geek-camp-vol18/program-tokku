@@ -10,6 +10,36 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 
+// バリデーション関数
+function validateEmail(email: string): string | null {
+  if (!email.trim()) {
+    return "メールアドレスを入力してください";
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return "有効なメールアドレスを入力してください";
+  }
+  return null;
+}
+
+function validateUsername(username: string): string | null {
+  const trimmed = username.trim();
+  if (!trimmed) {
+    return "ユーザー名を入力してください";
+  }
+  if (trimmed.length > 20) {
+    return "ユーザー名は20文字以内で入力してください";
+  }
+  return null;
+}
+
+function validatePassword(password: string): string | null {
+  if (password.length < 8) {
+    return "パスワードは8文字以上で入力してください";
+  }
+  return null;
+}
+
 const features = [
   "初心者歓迎のやさしいコミュニティ",
   "質問も回答もポイントがもらえる",
@@ -31,12 +61,21 @@ export default function RegisterPage() {
     setError("");
 
     // バリデーション
-    if (!username.trim()) {
-      setError("ユーザー名を入力してください");
+    const usernameError = validateUsername(username);
+    if (usernameError) {
+      setError(usernameError);
       return;
     }
-    if (password.length < 8) {
-      setError("パスワードは8文字以上で入力してください");
+
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    const pwError = validatePassword(password);
+    if (pwError) {
+      setError(pwError);
       return;
     }
 
@@ -49,11 +88,8 @@ export default function RegisterPage() {
     });
 
     if (authError) {
-      if (authError.message.includes("already registered")) {
-        setError("このメールアドレスは既に登録されています");
-      } else {
-        setError("登録に失敗しました。もう一度お試しください");
-      }
+      // セキュリティ: メールアドレスの存在を特定されないよう統一メッセージ
+      setError("登録に失敗しました。入力内容を確認してもう一度お試しください");
       setIsLoading(false);
       return;
     }
@@ -156,8 +192,12 @@ export default function RegisterPage() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="pl-10 h-11 focus-visible:ring-primary"
+                      maxLength={20}
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    20文字以内
+                  </p>
                 </div>
               {/* メール登録 */}
                 <div className="space-y-2">
