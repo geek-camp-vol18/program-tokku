@@ -2,55 +2,25 @@ import Link from "next/link";
 import { Heart, CheckCircle2, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase";
+import { formatTimeAgo } from "@/lib/utils";
 
-// TODO: Supabaseから質問一覧を取得する
-const mockQuestions = [
-  {
-    id: "1",
-    title: "React useEffectで無限ループが発生してしまいます",
-    content: "コンポーネントがマウントされた時にAPIからデータを取得したいのですが、useEffectの中でsetStateを呼ぶと無限ループになってしまいます...",
-    status: "open" as const,
-    created_at: "5分前",
-    answerCount: 3,
-    likeCount: 12,
-    tags: ["React", "バグ"],
-    user: {
-      username: "tanaka",
-      rank: "初心者",
-      avatarInitial: "T",
-    },
-  },
-  {
-    id: "2",
-    title: "React Routerでページ遷移ができない",
-    content: "React Router v6を使っているのですが、Linkコンポーネントでページ遷移しようとしてもURLは変わるのに画面が更新されません...",
-    status: "closed" as const,
-    created_at: "3時間前",
-    answerCount: 4,
-    likeCount: 8,
-    tags: ["React", "設計"],
-    user: {
-      username: "yamada",
-      rank: "中級者",
-      avatarInitial: "Y",
-    },
-  },
-  {
-    id: "3",
-    title: "Reactでのstate管理について",
-    content: "大規模なアプリケーションでのstate管理について悩んでいます。Redux、Zustand、Jotaiなど選択肢が多くてどれを使うべきか...",
-    status: "closed" as const,
-    created_at: "昨日",
-    answerCount: 6,
-    likeCount: 15,
-    tags: ["React", "設計"],
-    user: {
-      username: "kimura",
-      rank: "中級者",
-      avatarInitial: "K",
-    },
-  },
-];
+// 表示用の質問型
+interface QuestionWithDetails {
+  id: string;
+  title: string;
+  content: string;
+  status: "open" | "closed";
+  created_at: string;
+  answerCount: number;
+  likeCount: number;
+  tags: string[];
+  user: {
+    username: string;
+    rank: string;
+    avatarInitial: string;
+  };
+}
 
 interface PageProps {
   params: Promise<{ tag: string }>;
@@ -60,11 +30,78 @@ export default async function CategoryTagPage({ params }: PageProps) {
   const { tag } = await params;
   const decodedTag = decodeURIComponent(tag);
 
-  // TODO: question_tags経由で質問を取得
-  const questions = mockQuestions;
+  // 1. タグ名からtag_idを取得
+  const { data: tagData, error: tagError } = await supabase
+    .from("tags")
+    .select("id")
+    .eq("name", decodedTag)
+    .single();
+
+  // タグが見つからない場合は404ページを表示
+  if (tagError || !tagData) {
+    return (
+      <div className="px-6 py-8 max-w-4xl mx-auto text-center">
+        <h1 className="text-2xl font-bold mb-4">タグが見つかりません</h1>
+        <Link href="/categories" className="text-primary hover:underline">
+          カテゴリ一覧に戻る
+        </Link>
+      </div>
+    );
+  }
+
+  // 2. question_tags経由で質問を取得
+  const { data: questionsData, error: questionsError } = await supabase
+    .from("questions")
+    .select(`
+      id,
+      title,
+      content,
+      status,
+      created_at,
+      profiles:user_id (
+        username,
+        avatar_url,
+        ranks:rank_id (name)
+      ),
+      question_tags!inner (
+        tags (name)
+      ),
+      likes (id),
+      answers (id)
+    `)
+    .eq("question_tags.tag_id", tagData.id)
+    .order("created_at", { ascending: false });
+
+  if (questionsError) {
+    console.error("Error fetching questions:", questionsError.message);
+  }
+
+  // データを表示用に整形
+  const questions: QuestionWithDetails[] = (questionsData ?? []).map((q) => {
+    const profile = q.profiles as { username: string; avatar_url: string | null; ranks: { name: string } | null } | null;
+    const questionTags = q.question_tags as { tags: { name: string } }[];
+    const likes = q.likes as { id: string }[];
+    const answers = q.answers as { id: string }[];
+
+    return {
+      id: q.id,
+      title: q.title,
+      content: q.content,
+      status: q.status as "open" | "closed",
+      created_at: formatTimeAgo(q.created_at),
+      answerCount: answers?.length ?? 0,
+      likeCount: likes?.length ?? 0,
+      tags: questionTags?.map((qt) => qt.tags.name) ?? [],
+      user: {
+        username: profile?.username ?? "unknown",
+        rank: profile?.ranks?.name ?? "ビギナー",
+        avatarInitial: profile?.username?.charAt(0).toUpperCase() ?? "?",
+      },
+    };
+  });
 
   return (
-    <div className="px-6 py-8 max-w-4xl max-lg mx-auto">
+    <div className="px-6 py-8 max-w-4xl mx-auto">
       {/* パンくずリスト */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
         <Link href="/" className="hover:text-foreground">ホーム</Link>
