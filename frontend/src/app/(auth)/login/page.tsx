@@ -15,6 +15,18 @@ const MAX_ATTEMPTS = 5; // 最大試行回数
 const LOCKOUT_DURATION = 60 * 1000; // ロックアウト時間（60秒）
 const STORAGE_KEY = "login_rate_limit";
 
+// メールアドレスバリデーション
+function validateEmail(email: string): string | null {
+  if (!email.trim()) {
+    return "メールアドレスを入力してください";
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return "有効なメールアドレスを入力してください";
+  }
+  return null;
+}
+
 const features = [
   "初心者歓迎のやさしいコミュニティ",
   "質問も回答もポイントがもらえる",
@@ -73,8 +85,8 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [lockoutUntil]);
 
-  // 失敗回数を記録
-  const recordFailedAttempt = useCallback(() => {
+  // 失敗回数を記録し、新しい回数を返す
+  const recordFailedAttempt = useCallback((): number => {
     const newAttempts = failedAttempts + 1;
     setFailedAttempts(newAttempts);
 
@@ -91,6 +103,8 @@ export default function LoginPage() {
         JSON.stringify({ attempts: newAttempts, lockoutUntil: null })
       );
     }
+
+    return newAttempts;
   }, [failedAttempts]);
 
   // ログイン成功時にリセット
@@ -110,6 +124,20 @@ export default function LoginPage() {
     }
 
     setError("");
+
+    // メールバリデーション
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    // パスワード空チェック
+    if (!password) {
+      setError("パスワードを入力してください");
+      return;
+    }
+
     setIsLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -118,12 +146,12 @@ export default function LoginPage() {
     });
 
     if (error) {
-      recordFailedAttempt();
+      const newAttempts = recordFailedAttempt();
+      const attemptsLeft = MAX_ATTEMPTS - newAttempts;
 
       if (error.message.includes("Email not confirmed")) {
         setError("メールアドレスの確認が完了していません。登録時に届いたメールのリンクをクリックしてください");
       } else if (error.message.includes("Invalid login credentials")) {
-        const attemptsLeft = MAX_ATTEMPTS - (failedAttempts + 1);
         if (attemptsLeft > 0) {
           setError(`メールアドレスまたはパスワードが正しくありません（残り${attemptsLeft}回）`);
         } else {
