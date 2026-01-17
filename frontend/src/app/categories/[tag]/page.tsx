@@ -64,7 +64,7 @@ export default async function CategoryTagPage({ params }: PageProps) {
   const questions = mockQuestions;
 
   return (
-    <div className="px-6 py-8 max-w-4xl">
+    <div className="px-6 py-8 max-w-4xl max-lg mx-auto">
       {/* パンくずリスト */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
         <Link href="/" className="hover:text-foreground">ホーム</Link>
@@ -86,7 +86,7 @@ export default async function CategoryTagPage({ params }: PageProps) {
       </p>
 
       {/* 質問一覧 */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {questions.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             このカテゴリの質問はまだありません

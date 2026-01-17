@@ -42,7 +42,7 @@ const popularTags = [...tags].sort((a, b) => b.questionCount - a.questionCount).
 
 export default function CategoriesPage() {
   return (
-    <div className="px-6 py-8 max-w-6xl">
+    <div className="px-6 py-8 max-w-6xl mx-auto">
       <div className="flex gap-8">
         {/* メインコンテンツ */}
         <div className="flex-1">
