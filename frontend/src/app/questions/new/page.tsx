@@ -35,6 +35,7 @@ export default function NewQuestionPage() {
   const [dbTags, setDbTags] = useState<{id: string, name: string}[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,11 +44,39 @@ export default function NewQuestionPage() {
   const triggerFileSelect = () => fileInputRef.current?.click();
 
   // ファイルが選ばれた時の処理（今はログを出すだけ）
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      console.log("ファイルが選択されました:", file.name);
-      // ここに将来、Supabaseへのアップロード処理を書く
+    if (!file) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Math.random().toString(36).slice(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("question-images") 
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("question-images")
+        .getPublicUrl(filePath);
+      setImageUrl(publicUrl);
+
+      alert("アップロード成功！");
+
+    } catch (error: any) {
+      console.error("Upload Error:", error.message);
+      alert("アップロードに失敗しました。バケットの公開設定を確認してください。");
+    } finally {
+      // 6. アップロード完了後に状態を戻す
+      setIsSubmitting(false);
+      
+      // inputをリセット（同じファイルを再度選んでも発火するようにする）
+      if (e.target) e.target.value = "";
     }
   };
   useEffect(() => {
@@ -93,6 +122,7 @@ export default function NewQuestionPage() {
         .insert([{ 
           id: crypto.randomUUID(), // ★ フロント側でUUIDを生成して送り込む
           title, 
+          image_url: imageUrl, 
           content: fullContent, 
           status: "open" 
         }])
@@ -168,12 +198,35 @@ export default function NewQuestionPage() {
                         {blocks.map((block, index) => (
                           <div key={block.id} className="group relative">
                             {block.type === "text" ? (
-                              <Textarea
-                                placeholder={index === 0 ? "やりたいこと、試したことなどを詳しく書いてください" : ""}
-                                value={block.value}
-                                onChange={(e) => updateBlock(block.id, e.target.value)}
-                                className="min-h-[100px] border-none shadow-none focus-visible:ring-0 text-base resize-none bg-transparent"
-                              />
+                              <div className="flex flex-col">
+                                <Textarea
+                                  placeholder={index === 0 ? "やりたいこと、試したことなどを詳しく書いてください" : ""}
+                                  value={block.value}
+                                  onChange={(e) => updateBlock(block.id, e.target.value)}
+                                  className="min-h-[100px] border-none shadow-none focus-visible:ring-0 text-base resize-none bg-transparent"
+                                />
+                                
+                                {/* ★ 画像プレビュー：1番目のテキストブロックにimageUrlがある場合のみ表示 */}
+                                {index === 0 && imageUrl && (
+                                  <div className="relative border rounded-md overflow-hidden bg-muted/30 mx-2 my-2 p-2 group/image">
+                                    <img 
+                                      src={imageUrl} 
+                                      alt="添付画像" 
+                                      className="max-h-[300px] w-auto rounded object-contain mx-auto" 
+                                    />
+                                    {/* 画像削除ボタン：ホバー時に出現 */}
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="icon"
+                                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover/image:opacity-100 transition-opacity z-10"
+                                      onClick={() => setImageUrl(null)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
                             ) : (
                               <div className="relative border rounded-md overflow-hidden h-[250px] bg-[#1e1e1e] mx-2 my-1">
                                 <Editor
@@ -197,29 +250,30 @@ export default function NewQuestionPage() {
                           </div>
                         ))}
                       </div>
+
+                      {/* 隠しインプット */}
+                      <input 
+                        type="file" 
+                        ref={imageInputRef} 
+                        onChange={handleFileChange} 
+                        accept="image/*" 
+                        className="hidden" 
+                      />
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        className="hidden" 
+                      />
+
+                      {/* ツールバー */}
+                      <PostToolbar 
+                        onAddCode={addCodeBlock} 
+                        onImageClick={triggerImageSelect} 
+                        onFileClick={triggerFileSelect} 
+                      />
                     </div>
-                    <input 
-                      type="file" 
-                      ref={imageInputRef} 
-                      onChange={handleFileChange} 
-                      accept="image/*" 
-                      className="hidden" 
-                    />
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      onChange={handleFileChange} 
-                      className="hidden" 
-                    />
-
-                    {/* ツールバー */}
-                    <PostToolbar 
-                      onAddCode={addCodeBlock} 
-                      onImageClick={triggerImageSelect} 
-                      onFileClick={triggerFileSelect} 
-                    />
                   </div>
-
                   {/* 言語・フレームワーク：必須に変更 */}
                   <div className="space-y-3">
                     <label className="text-sm font-bold">言語・フレームワーク <span className="text-red-500">*</span></label>
