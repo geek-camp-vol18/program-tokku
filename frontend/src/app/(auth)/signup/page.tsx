@@ -27,16 +27,8 @@ function validateUsername(username: string): string | null {
   if (!trimmed) {
     return "ユーザー名を入力してください";
   }
-  if (trimmed.length < 3) {
-    return "ユーザー名は3文字以上で入力してください";
-  }
   if (trimmed.length > 20) {
     return "ユーザー名は20文字以内で入力してください";
-  }
-  // 英数字、アンダースコア、日本語（ひらがな、カタカナ、漢字）を許可
-  const usernameRegex = /^[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+$/;
-  if (!usernameRegex.test(trimmed)) {
-    return "ユーザー名に使用できない文字が含まれています";
   }
   return null;
 }
@@ -204,7 +196,7 @@ export default function RegisterPage() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    3〜20文字（英数字・アンダースコア・日本語）
+                    20文字以内
                   </p>
                 </div>
               {/* メール登録 */}
