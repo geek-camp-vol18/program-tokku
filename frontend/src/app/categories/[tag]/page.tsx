@@ -37,64 +37,68 @@ export default async function CategoryTagPage({ params }: PageProps) {
     .eq("name", decodedTag)
     .single();
 
-  if (tagError) {
-    console.error("Error fetching tag:", tagError.message);
+  // タグが見つからない場合は404ページを表示
+  if (tagError || !tagData) {
+    return (
+      <div className="px-6 py-8 max-w-4xl mx-auto text-center">
+        <h1 className="text-2xl font-bold mb-4">タグが見つかりません</h1>
+        <Link href="/categories" className="text-primary hover:underline">
+          カテゴリ一覧に戻る
+        </Link>
+      </div>
+    );
   }
 
-  let questions: QuestionWithDetails[] = [];
+  // 2. question_tags経由で質問を取得
+  const { data: questionsData, error: questionsError } = await supabase
+    .from("questions")
+    .select(`
+      id,
+      title,
+      content,
+      status,
+      created_at,
+      profiles:user_id (
+        username,
+        avatar_url,
+        ranks:rank_id (name)
+      ),
+      question_tags!inner (
+        tags (name)
+      ),
+      likes (id),
+      answers (id)
+    `)
+    .eq("question_tags.tag_id", tagData.id)
+    .order("created_at", { ascending: false });
 
-  if (tagData) {
-    // 2. question_tags経由で質問を取得
-    const { data: questionsData, error: questionsError } = await supabase
-      .from("questions")
-      .select(`
-        id,
-        title,
-        content,
-        status,
-        created_at,
-        profiles:user_id (
-          username,
-          avatar_url,
-          ranks:rank_id (name)
-        ),
-        question_tags!inner (
-          tags (name)
-        ),
-        likes (id),
-        answers (id)
-      `)
-      .eq("question_tags.tag_id", tagData.id)
-      .order("created_at", { ascending: false });
-
-    if (questionsError) {
-      console.error("Error fetching questions:", questionsError.message);
-    }
-
-    // データを表示用に整形
-    questions = (questionsData ?? []).map((q) => {
-      const profile = q.profiles as { username: string; avatar_url: string | null; ranks: { name: string } | null } | null;
-      const questionTags = q.question_tags as { tags: { name: string } }[];
-      const likes = q.likes as { id: string }[];
-      const answers = q.answers as { id: string }[];
-
-      return {
-        id: q.id,
-        title: q.title,
-        content: q.content,
-        status: q.status as "open" | "closed",
-        created_at: formatTimeAgo(q.created_at),
-        answerCount: answers?.length ?? 0,
-        likeCount: likes?.length ?? 0,
-        tags: questionTags?.map((qt) => qt.tags.name) ?? [],
-        user: {
-          username: profile?.username ?? "unknown",
-          rank: profile?.ranks?.name ?? "ビギナー",
-          avatarInitial: profile?.username?.charAt(0).toUpperCase() ?? "?",
-        },
-      };
-    });
+  if (questionsError) {
+    console.error("Error fetching questions:", questionsError.message);
   }
+
+  // データを表示用に整形
+  const questions: QuestionWithDetails[] = (questionsData ?? []).map((q) => {
+    const profile = q.profiles as { username: string; avatar_url: string | null; ranks: { name: string } | null } | null;
+    const questionTags = q.question_tags as { tags: { name: string } }[];
+    const likes = q.likes as { id: string }[];
+    const answers = q.answers as { id: string }[];
+
+    return {
+      id: q.id,
+      title: q.title,
+      content: q.content,
+      status: q.status as "open" | "closed",
+      created_at: formatTimeAgo(q.created_at),
+      answerCount: answers?.length ?? 0,
+      likeCount: likes?.length ?? 0,
+      tags: questionTags?.map((qt) => qt.tags.name) ?? [],
+      user: {
+        username: profile?.username ?? "unknown",
+        rank: profile?.ranks?.name ?? "ビギナー",
+        avatarInitial: profile?.username?.charAt(0).toUpperCase() ?? "?",
+      },
+    };
+  });
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
