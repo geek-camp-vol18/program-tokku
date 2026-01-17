@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { SiPython, SiJavascript, SiReact, SiTypescript, SiNextdotjs, SiNodedotjs, SiVuedotjs, SiGo, SiRuby, SiPhp, SiRust } from "react-icons/si";
+import { SiPython, SiReact, SiNextdotjs, SiNodedotjs, SiVuedotjs, SiGo, SiRuby, SiPhp, SiRust, SiC, SiCplusplus } from "react-icons/si";
 import { FaJava } from "react-icons/fa";
 import { TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase";
+import type { Tag } from "@/types/question";
 
 // タグとアイコンのマッピング
 const tagIcons: Record<string, React.ReactNode> = {
@@ -19,28 +21,33 @@ const tagIcons: Record<string, React.ReactNode> = {
   "Ruby": <SiRuby className="w-10 h-10 text-[#CC342D]" />,
   "PHP": <SiPhp className="w-10 h-10 text-[#777BB4]" />,
   "Rust": <SiRust className="w-10 h-10 text-[#DEA584]" />,
+  "C": <SiC className="w-10 h-10 text-[#A8B9CC]" />,
+  "C++": <SiCplusplus className="w-10 h-10 text-[#00599C]" />,
 };
 
-// TODO: Supabaseからタグ一覧を取得する
-const tags = [
-  { id: "1", name: "Python", questionCount: 234 },
-  { id: "2", name: "JavaScript", questionCount: 189 },
-  { id: "3", name: "React", questionCount: 156 },
-  { id: "4", name: "TypeScript", questionCount: 98 },
-  { id: "5", name: "Node.js", questionCount: 87 },
-  { id: "6", name: "Vue", questionCount: 45 },
-  { id: "7", name: "Next.js", questionCount: 67 },
-  { id: "8", name: "Go", questionCount: 34 },
-  { id: "9", name: "Java", questionCount: 56 },
-  { id: "10", name: "Ruby", questionCount: 23 },
-  { id: "11", name: "PHP", questionCount: 45 },
-  { id: "12", name: "Rust", questionCount: 28 },
-];
+// 表示用のタグ型（質問数を含む）
+interface TagWithCount extends Tag {
+  questionCount: number;
+}
 
-// 人気カテゴリ（質問数上位5件）
-const popularTags = [...tags].sort((a, b) => b.questionCount - a.questionCount).slice(0, 5);
+export default async function CategoriesPage() {
+  // Supabaseからタグ一覧を取得
+  const { data: tagsData, error } = await supabase
+    .from("tags")
+    .select("*");
 
-export default function CategoriesPage() {
+  if (error) {
+    console.error("Error fetching tags:", error.message);
+  }
+
+  // TODO: 質問数は後でquestion_tagsからカウントする
+  const tags: TagWithCount[] = (tagsData ?? []).map((tag) => ({
+    ...tag,
+    questionCount: 0, // モック値（後で実装）
+  }));
+
+  // 人気カテゴリ（質問数上位5件）- 現在はモックなので先頭5件
+  const popularTags = tags.slice(0, 5);
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto">
       <div className="flex gap-8">
