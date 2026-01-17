@@ -1,11 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useCallback } from "react";
 
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Card } from "@/components/ui/card";
 
+import { supabase } from "@/lib/supabase";
 import { useQuestionDetail } from "@/components/questions/useQuestionDetail";
 import { QuestionDetailCard } from "@/components/questions/QuestionDetailCard";
 import { AskerCard } from "@/components/questions/AskerCard";
@@ -15,7 +17,42 @@ export default function QuestionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
-  const { data, loading, errorMsg } = useQuestionDetail(id);
+  const { data, loading, errorMsg, refetch } = useQuestionDetail(id);
+
+  // 回答投稿後にデータを再取得
+  const handleAnswerPosted = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // ベストアンサー選択
+  const handleBestAnswerSelected = useCallback(async (answerId: string) => {
+    if (!id) return;
+
+    // 1. 回答をベストアンサーに設定
+    const { error: updateError } = await supabase
+      .from("answers")
+      .update({ is_best_answer: true })
+      .eq("id", answerId);
+
+    if (updateError) {
+      console.error("Best answer update error:", updateError.message);
+      alert("ベストアンサーの設定に失敗しました");
+      return;
+    }
+
+    // 2. 質問のステータスを解決済みに変更
+    const { error: statusError } = await supabase
+      .from("questions")
+      .update({ status: "closed" })
+      .eq("id", id);
+
+    if (statusError) {
+      console.error("Question status update error:", statusError.message);
+    }
+
+    // 3. データを再取得
+    refetch();
+  }, [id, refetch]);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -39,7 +76,7 @@ export default function QuestionDetailPage() {
                   <Card className="p-6">読み込み中...</Card>
                 ) : errorMsg ? (
                   <Card className="p-6 text-destructive">
-                    Supabaseエラー: {errorMsg}
+                    エラー: {errorMsg}
                   </Card>
                 ) : !data ? (
                   <Card className="p-6">質問が見つかりませんでした</Card>
@@ -56,7 +93,13 @@ export default function QuestionDetailPage() {
                       }}
                     />
 
-                    <AnswerSection answers={data.answers} />
+                    <AnswerSection
+                      questionId={data.question.id}
+                      questionUserId={data.question.user_id}
+                      answers={data.answers}
+                      onAnswerPosted={handleAnswerPosted}
+                      onBestAnswerSelected={handleBestAnswerSelected}
+                    />
                   </>
                 )}
               </section>

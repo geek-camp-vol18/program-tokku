@@ -105,6 +105,9 @@ export function useQuestionDetail(id: string | undefined) {
   const [data, setData] = useState<QuestionDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refetch = () => setRefreshKey((prev) => prev + 1);
 
   useEffect(() => {
     let cancelled = false;
@@ -256,7 +259,7 @@ export function useQuestionDetail(id: string | undefined) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, refreshKey]);
 
-  return { data, loading, errorMsg };
+  return { data, loading, errorMsg, refetch };
 }

@@ -1,10 +1,11 @@
 "use client";
 
-// 回答カードコンポーネント
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Award } from "lucide-react";
 
-import type { Answer } from "@/types/answer"; 
+import type { Answer } from "@/types/answer";
 
 export type ProfileJoined = {
   id: string;
@@ -13,15 +14,10 @@ export type ProfileJoined = {
   ranks?: { name: string | null } | null;
 };
 
-/**
- * UI表示用の回答型
- * DBの Answer をベースに、joinしたプロフィール情報を追加
- */
 export type AnswerRow = Answer & {
   profiles: ProfileJoined | null;
 };
 
-// 投稿日時を「〇分前」形式に変換するヘルパー関数
 function formatRelativeTime(iso: string): string {
   const d = new Date(iso);
   const ms = d.getTime();
@@ -36,7 +32,13 @@ function formatRelativeTime(iso: string): string {
   return `${diffDay}日前`;
 }
 
-export function AnswerCard({ answer }: { answer: AnswerRow }) {
+type Props = {
+  answer: AnswerRow;
+  showBestAnswerButton?: boolean;
+  onSelectBestAnswer?: () => void;
+};
+
+export function AnswerCard({ answer, showBestAnswerButton, onSelectBestAnswer }: Props) {
   const name = (answer.profiles?.username ?? "名無し").trim() || "名無し";
   const handle = `@${name}`;
   const initial = name.charAt(0) || "?";
@@ -44,7 +46,7 @@ export function AnswerCard({ answer }: { answer: AnswerRow }) {
   const time = formatRelativeTime(answer.created_at);
 
   return (
-    <Card className="p-5 space-y-3">
+    <Card className={`p-5 space-y-3 ${answer.is_best_answer ? "border-2 border-emerald-400 bg-emerald-50/30" : ""}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
@@ -56,7 +58,6 @@ export function AnswerCard({ answer }: { answer: AnswerRow }) {
               {handle}
             </span>
 
-            {/* ランク名と投稿時間 */}
             {rankName ? (
               <Badge variant="secondary" className="h-5 rounded-full text-xs">
                 {rankName}
@@ -71,15 +72,31 @@ export function AnswerCard({ answer }: { answer: AnswerRow }) {
 
         {/* ベストアンサー表示 */}
         {answer.is_best_answer ? (
-          <Badge className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-            ベスト
+          <Badge className="rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 gap-1">
+            <Award className="h-3 w-3" />
+            ベストアンサー
           </Badge>
         ) : null}
       </div>
 
-      <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+      <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
         {answer.content}
       </p>
+
+      {/* ベストアンサー選択ボタン */}
+      {showBestAnswerButton && onSelectBestAnswer && (
+        <div className="flex justify-end pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSelectBestAnswer}
+            className="gap-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+          >
+            <Award className="h-4 w-4" />
+            ベストアンサーに選ぶ
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }

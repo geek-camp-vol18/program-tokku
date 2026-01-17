@@ -1,10 +1,10 @@
 "use client";
 
-// 質問詳細カードコンポーネント
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageSquare } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
+import { LikeButton } from "@/components/common/LikeButton";
 import type { Question } from "@/types/question";
 
 type Props = {
@@ -18,19 +18,16 @@ type Props = {
   };
 };
 
-// ステータス文言
 function statusText(status: Question["status"]) {
   return status === "open" ? "回答募集中" : "解決済み";
 }
 
-// ステータスに合わせたバッジの色
 function statusBadgeClass(status: Question["status"]) {
   return status === "open"
     ? "bg-amber-50 text-amber-700 border border-amber-200"
     : "bg-emerald-50 text-emerald-700 border border-emerald-200";
 }
 
-// 投稿日時を「YYYY年MM月DD日 HH:MM」形式に変換するヘルパー関数
 function formatJPDateTime(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -42,7 +39,6 @@ function formatJPDateTime(iso: string) {
   return `${yyyy}年${mm}月${dd}日 ${hh}:${mi}`;
 }
 
-// 質問詳細カードコンポーネント
 export function QuestionDetailCard({ question, tags, answerCount, likeCount, asker }: Props) {
   const name = (asker.username ?? "名無し").trim() || "名無し";
   const initial = name.charAt(0) || "?";
@@ -110,12 +106,10 @@ export function QuestionDetailCard({ question, tags, answerCount, likeCount, ask
         )}
       </div>
 
-      <div className="mt-5 flex items-center gap-6 text-sm text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Heart className="h-4 w-4" />
-          <span className="tabular-nums">{likeCount}</span>
-        </div>
-        <div className="flex items-center gap-1">
+      {/* いいね・回答数 */}
+      <div className="mt-5 flex items-center gap-4 text-sm">
+        <LikeButton questionId={question.id} initialLikeCount={likeCount} />
+        <div className="flex items-center gap-1 text-muted-foreground">
           <MessageSquare className="h-4 w-4" />
           <span className="tabular-nums">{answerCount}</span>
         </div>
