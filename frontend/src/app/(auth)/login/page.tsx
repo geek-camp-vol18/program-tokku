@@ -1,14 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Sprout, Mail, Eye, EyeOff, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { Sprout, Mail, Eye, EyeOff, ArrowRight, CheckCircle2, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
+
+// レート制限の設定
+const MAX_ATTEMPTS = 5; // 最大試行回数
+const LOCKOUT_DURATION = 60 * 1000; // ロックアウト時間（60秒）
+const STORAGE_KEY = "login_rate_limit";
 
 const features = [
   "初心者歓迎のやさしいコミュニティ",
@@ -25,8 +30,85 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // レート制限用の状態
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [remainingTime, setRemainingTime] = useState(0);
+
+  // ロックアウト状態をlocalStorageから復元
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      setFailedAttempts(data.attempts || 0);
+      if (data.lockoutUntil && data.lockoutUntil > Date.now()) {
+        setLockoutUntil(data.lockoutUntil);
+      } else if (data.lockoutUntil) {
+        // ロックアウト期間が終了していたらリセット
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  // カウントダウンタイマー
+  useEffect(() => {
+    if (!lockoutUntil) {
+      setRemainingTime(0);
+      return;
+    }
+
+    const updateRemaining = () => {
+      const remaining = Math.max(0, lockoutUntil - Date.now());
+      setRemainingTime(Math.ceil(remaining / 1000));
+
+      if (remaining <= 0) {
+        setLockoutUntil(null);
+        setFailedAttempts(0);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    };
+
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutUntil]);
+
+  // 失敗回数を記録
+  const recordFailedAttempt = useCallback(() => {
+    const newAttempts = failedAttempts + 1;
+    setFailedAttempts(newAttempts);
+
+    if (newAttempts >= MAX_ATTEMPTS) {
+      const lockoutTime = Date.now() + LOCKOUT_DURATION;
+      setLockoutUntil(lockoutTime);
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ attempts: newAttempts, lockoutUntil: lockoutTime })
+      );
+    } else {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ attempts: newAttempts, lockoutUntil: null })
+      );
+    }
+  }, [failedAttempts]);
+
+  // ログイン成功時にリセット
+  const resetAttempts = useCallback(() => {
+    setFailedAttempts(0);
+    setLockoutUntil(null);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
+  const isLockedOut = lockoutUntil !== null && lockoutUntil > Date.now();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isLockedOut) {
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
@@ -36,11 +118,17 @@ export default function LoginPage() {
     });
 
     if (error) {
-      console.error("Login error:", error.message);
+      recordFailedAttempt();
+
       if (error.message.includes("Email not confirmed")) {
         setError("メールアドレスの確認が完了していません。登録時に届いたメールのリンクをクリックしてください");
       } else if (error.message.includes("Invalid login credentials")) {
-        setError("メールアドレスまたはパスワードが正しくありません");
+        const attemptsLeft = MAX_ATTEMPTS - (failedAttempts + 1);
+        if (attemptsLeft > 0) {
+          setError(`メールアドレスまたはパスワードが正しくありません（残り${attemptsLeft}回）`);
+        } else {
+          setError("ログイン試行回数の上限に達しました。しばらくお待ちください");
+        }
       } else {
         setError("ログインに失敗しました。もう一度お試しください");
       }
@@ -48,7 +136,8 @@ export default function LoginPage() {
       return;
     }
 
-    // ログイン成功 → ホームへリダイレクト
+    // ログイン成功 → 試行回数リセット → ホームへリダイレクト
+    resetAttempts();
     router.push("/");
   };
 
@@ -109,8 +198,21 @@ export default function LoginPage() {
           <Card className="border-0 shadow-none lg:shadow-xl lg:border">
             <CardContent className="p-0 lg:p-6 space-y-6">
 
+              {/* ロックアウト警告 */}
+              {isLockedOut && (
+                <div className="p-4 text-sm bg-amber-50 border border-amber-200 rounded-md">
+                  <div className="flex items-center gap-2 text-amber-700 font-medium">
+                    <Clock className="h-4 w-4" />
+                    ログインが一時的に制限されています
+                  </div>
+                  <p className="mt-1 text-amber-600">
+                    セキュリティのため、{remainingTime}秒後に再試行できます
+                  </p>
+                </div>
+              )}
+
               {/* エラーメッセージ */}
-              {error && (
+              {error && !isLockedOut && (
                 <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
                   {error}
                 </div>
@@ -166,8 +268,18 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-11 gap-2" size="lg" disabled={isLoading}>
-                  {isLoading ? (
+                <Button
+                  type="submit"
+                  className="w-full h-11 gap-2"
+                  size="lg"
+                  disabled={isLoading || isLockedOut}
+                >
+                  {isLockedOut ? (
+                    <>
+                      <Clock className="h-4 w-4" />
+                      {remainingTime}秒後に再試行可能
+                    </>
+                  ) : isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       ログイン中...
