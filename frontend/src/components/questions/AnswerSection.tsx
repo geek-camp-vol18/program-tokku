@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Paperclip, Code, Send } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, Paperclip, Code, Send, Image, FileText } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 import { AnswerCard, type AnswerRow } from "@/components/questions/AnswerCard";
@@ -17,6 +23,26 @@ type Props = {
   onBestAnswerSelected: (answerId: string) => void;
 };
 
+const CODE_LANGUAGES = [
+  { value: "javascript", label: "JavaScript" },
+  { value: "typescript", label: "TypeScript" },
+  { value: "python", label: "Python" },
+  { value: "java", label: "Java" },
+  { value: "c", label: "C" },
+  { value: "cpp", label: "C++" },
+  { value: "csharp", label: "C#" },
+  { value: "go", label: "Go" },
+  { value: "rust", label: "Rust" },
+  { value: "ruby", label: "Ruby" },
+  { value: "php", label: "PHP" },
+  { value: "html", label: "HTML" },
+  { value: "css", label: "CSS" },
+  { value: "sql", label: "SQL" },
+  { value: "bash", label: "Bash" },
+  { value: "json", label: "JSON" },
+  { value: "", label: "その他" },
+];
+
 export function AnswerSection({
   questionId,
   questionUserId,
@@ -28,6 +54,10 @@ export function AnswerSection({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 現在のユーザーを取得
   useEffect(() => {
@@ -35,6 +65,96 @@ export function AnswerSection({
       setCurrentUserId(data.user?.id ?? null);
     });
   }, []);
+
+  // テキストエリアにテキストを挿入
+  const insertText = (text: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setContent((prev) => prev + text);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newContent = content.slice(0, start) + text + content.slice(end);
+    setContent(newContent);
+
+    // カーソル位置を調整
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    }, 0);
+  };
+
+  // コード挿入
+  const handleCodeInsert = (language: string) => {
+    const codeBlock = `\n\`\`\`${language}\n// コードをここに入力\n\`\`\`\n`;
+    insertText(codeBlock);
+    setIsCodeDialogOpen(false);
+  };
+
+  // ファイル添付
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // ファイルサイズチェック（5MB）
+    if (file.size > 5 * 1024 * 1024) {
+      setError("ファイルサイズは5MB以下にしてください");
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      // ユーザー確認
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setError("ファイルをアップロードするにはログインが必要です");
+        setIsUploading(false);
+        return;
+      }
+
+      // ファイル名を生成
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${userData.user.id}/${Date.now()}.${fileExt}`;
+
+      // Supabase Storageにアップロード
+      const { error: uploadError } = await supabase.storage
+        .from("answers")
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError.message);
+        setError("ファイルのアップロードに失敗しました");
+        setIsUploading(false);
+        return;
+      }
+
+      // 公開URLを取得
+      const { data: urlData } = supabase.storage
+        .from("answers")
+        .getPublicUrl(fileName);
+
+      // 画像かどうかで挿入形式を変える
+      const isImage = file.type.startsWith("image/");
+      if (isImage) {
+        insertText(`\n![${file.name}](${urlData.publicUrl})\n`);
+      } else {
+        insertText(`\n[${file.name}](${urlData.publicUrl})\n`);
+      }
+    } catch (err) {
+      console.error("File upload error:", err);
+      setError("ファイルのアップロードに失敗しました");
+    }
+
+    setIsUploading(false);
+    // inputをリセット
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async () => {
     if (!content.trim()) {
@@ -110,6 +230,7 @@ export function AnswerSection({
         )}
 
         <Textarea
+          ref={textareaRef}
           placeholder="回答内容を入力..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -119,11 +240,36 @@ export function AnswerSection({
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground">
-              <Paperclip className="h-4 w-4" />
+            {/* ファイル添付 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf,.txt,.md"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Paperclip className="h-4 w-4" />
+              )}
               ファイル添付
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground">
+
+            {/* コード挿入 */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={() => setIsCodeDialogOpen(true)}
+            >
               <Code className="h-4 w-4" />
               コード挿入
             </Button>
@@ -148,6 +294,28 @@ export function AnswerSection({
           </Button>
         </div>
       </Card>
+
+      {/* コード挿入ダイアログ */}
+      <Dialog open={isCodeDialogOpen} onOpenChange={setIsCodeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>コードブロックを挿入</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-2 py-4">
+            {CODE_LANGUAGES.map((lang) => (
+              <Button
+                key={lang.value}
+                variant="outline"
+                size="sm"
+                onClick={() => handleCodeInsert(lang.value)}
+                className="justify-start"
+              >
+                {lang.label}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
