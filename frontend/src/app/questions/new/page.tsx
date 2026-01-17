@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Editor from "@monaco-editor/react";
-
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { PostToolbar } from "@/components/questions/PostToolbar";
@@ -17,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Lightbulb, Loader2, Trash2 } from "lucide-react";
 
 import Link from "next/link";
+
 
 type EditorBlock = {
   id: string;
@@ -32,8 +32,31 @@ export default function NewQuestionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState("");
   const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+  const [dbTags, setDbTags] = useState<{id: string, name: string}[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+// OSのファイルダイアログを開く
+  const triggerImageSelect = () => imageInputRef.current?.click();
+  const triggerFileSelect = () => fileInputRef.current?.click();
+
+  // ファイルが選ばれた時の処理（今はログを出すだけ）
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      console.log("ファイルが選択されました:", file.name);
+      // ここに将来、Supabaseへのアップロード処理を書く
+    }
+  };
+  useEffect(() => {
+    const fetchTags = async () => {
+      const { data } = await supabase.from("tags").select("*");
+      if (data) setDbTags(data);
+    };
+    fetchTags();
+  }, []);
   const [blocks, setBlocks] = useState<EditorBlock[]>([
     { id: crypto.randomUUID(), type: "text", value: "" },
   ]);
@@ -53,9 +76,8 @@ export default function NewQuestionPage() {
   };
 
   const handleSubmit = async () => {
-    // ★ 修正：タイトル、詳細、そして「言語・フレームワーク」を必須チェックに含める
-    if (!title || blocks[0].value === "" || selectedLangs.length === 0) {
-      alert("タイトル、詳細、および少なくとも1つの言語・フレームワークを選択してください");
+    if (!title || blocks[0].value === "" || selectedTagIds.length === 0) {
+      alert("タイトル、詳細、およびタグの選択は必須です");
       return;
     }
 
@@ -65,22 +87,35 @@ export default function NewQuestionPage() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      // STEP 1: questionsテーブルに本体を保存し、生成されたIDを受け取る
+      const { data: question, error: qError } = await supabase
         .from("questions")
-        .insert([
-          { 
-            title, 
-            content: fullContent, 
-            category: selectedCategory || null, // カテゴリは空でもOK
-            // ※ 言語データ（selectedLangs）の保存先はDB設計に合わせて調整してください
-            status: "open" 
-          }
-        ]);
+        .insert([{ 
+          id: crypto.randomUUID(), // ★ フロント側でUUIDを生成して送り込む
+          title, 
+          content: fullContent, 
+          status: "open" 
+        }])
+        .select("id")
+        .single();
 
-      if (error) throw error;
-      alert("質問を投稿しました！ +5pt獲得！");
+      if (qError) throw qError;
+
+      // STEP 2: 選ばれた全てのタグIDを question_tags に保存
+      const tagInserts = selectedTagIds.map(tagId => ({
+        id: crypto.randomUUID(),     // 仮置き
+        question_id: question.id,
+        tag_id: tagId
+      }));
+
+      const { error: tError } = await supabase
+        .from("question_tags")
+        .insert(tagInserts);
+
+      if (tError) throw tError;
+
+      alert("質問を投稿しました！");
       router.push("/");
-      router.refresh();
     } catch (error: any) {
       alert("エラーが発生しました: " + error.message);
     } finally {
@@ -163,21 +198,42 @@ export default function NewQuestionPage() {
                         ))}
                       </div>
                     </div>
-                    <PostToolbar onAddCode={addCodeBlock} />
+                    <input 
+                      type="file" 
+                      ref={imageInputRef} 
+                      onChange={handleFileChange} 
+                      accept="image/*" 
+                      className="hidden" 
+                    />
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange} 
+                      className="hidden" 
+                    />
+
+                    {/* ツールバー */}
+                    <PostToolbar 
+                      onAddCode={addCodeBlock} 
+                      onImageClick={triggerImageSelect} 
+                      onFileClick={triggerFileSelect} 
+                    />
                   </div>
 
                   {/* 言語・フレームワーク：必須に変更 */}
                   <div className="space-y-3">
                     <label className="text-sm font-bold">言語・フレームワーク <span className="text-red-500">*</span></label>
                     <div className="flex flex-wrap gap-2">
-                      {LANGUAGES.map(lang => (
+                      {dbTags.map(tag => (
                         <Badge 
-                          key={lang}
-                          onClick={() => setSelectedLangs(prev => prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang])}
-                          variant={selectedLangs.includes(lang) ? "default" : "outline"}
+                          key={tag.id}
+                          onClick={() => setSelectedTagIds(prev => 
+                            prev.includes(tag.id) ? prev.filter(id => id !== tag.id) : [...prev, tag.id]
+                          )}
+                          variant={selectedTagIds.includes(tag.id) ? "default" : "outline"}
                           className="cursor-pointer"
                         >
-                          {lang}
+                          {tag.name}
                         </Badge>
                       ))}
                     </div>
