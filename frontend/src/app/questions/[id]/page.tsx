@@ -18,47 +18,54 @@ export default function QuestionDetailPage() {
   const { data, loading, errorMsg } = useQuestionDetail(id);
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-muted/30">
       <Header />
 
-      <div className="mx-auto flex w-full max-w-7xl">
+      <div className="flex">
         <Sidebar />
-        
-        <main className="w-full flex-1 px-6 py-8">
-          <div className="text-xs text-muted-foreground mb-4">
-            <span className="text-muted-foreground">ホーム / </span>
-            <span className="text-muted-foreground">質問一覧 / </span>
-            <span className="text-foreground font-medium">質問詳細</span>
-          </div>
 
-          <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
-            <section className="space-y-6">
-            {/* 質問詳細・回答セクション */}
-              {loading ? (
-                <Card className="p-6">読み込み中...</Card>
-              ) : errorMsg ? (
-                <Card className="p-6 text-destructive">Supabaseエラー: {errorMsg}</Card>
-              ) : !data ? (
-                <Card className="p-6">質問が見つかりませんでした</Card>
-              ) : (
-                <>
-                  <QuestionDetailCard
-                    question={data.question}
-                    tags={data.tags}
-                    answerCount={data.answerCount}
-                    likeCount={data.likeCount}
-                    asker={{ username: data.asker.username ?? "名無し", rankName: data.asker.rankName }}
-                  />
+        <main className="flex-1 overflow-auto">
+          <div className="px-6 py-8 max-w-7xl mx-auto">
+            <div className="text-xs text-muted-foreground mb-4">
+              <span className="text-muted-foreground">ホーム / </span>
+              <span className="text-muted-foreground">質問一覧 / </span>
+              <span className="text-foreground font-medium">質問詳細</span>
+            </div>
 
-                  <AnswerSection answers={data.answers} />
-                </>
-              )}
-            </section>
+            <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+              <section className="space-y-6">
+                {/* 質問詳細・回答セクション */}
+                {loading ? (
+                  <Card className="p-6">読み込み中...</Card>
+                ) : errorMsg ? (
+                  <Card className="p-6 text-destructive">
+                    Supabaseエラー: {errorMsg}
+                  </Card>
+                ) : !data ? (
+                  <Card className="p-6">質問が見つかりませんでした</Card>
+                ) : (
+                  <>
+                    <QuestionDetailCard
+                      question={data.question}
+                      tags={data.tags}
+                      answerCount={data.answerCount}
+                      likeCount={data.likeCount}
+                      asker={{
+                        username: data.asker.username ?? "名無し",
+                        rankName: data.asker.rankName,
+                      }}
+                    />
 
-            {/* 質問者情報サイドバー */}
-            <aside className="space-y-6 md:sticky md:top-24">
-              {data ? <AskerCard profile={data.asker} /> : null}
-            </aside>
+                    <AnswerSection answers={data.answers} />
+                  </>
+                )}
+              </section>
+
+              {/* 質問者情報サイドバー */}
+              <aside className="space-y-6 md:sticky md:top-24">
+                {data ? <AskerCard profile={data.asker} /> : null}
+              </aside>
+            </div>
           </div>
         </main>
       </div>

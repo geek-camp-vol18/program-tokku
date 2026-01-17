@@ -27,12 +27,10 @@ export default function Home() {
     pageSize,
   });
 
-  // 検索・フィルタ条件が変わったらページを1に戻す
   useEffect(() => {
     setPage(1);
   }, [filter, searchQuery]);
 
-  // safePage が補正される場合のみ反映
   useEffect(() => {
     if (safePage !== page) setPage(safePage);
   }, [safePage, page]);
@@ -48,85 +46,84 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-muted">
+    <div className="min-h-screen bg-muted/30">
       <Header />
 
-      {/* メニュサイドバー */}
-      <div className="mx-auto flex w-full max-w-7xl">
+      <div className="flex">
         <Sidebar />
 
-        <main className="w-full flex-1 px-6 py-8">
-          <header className="space-y-4">
-            <h1 className="text-2xl font-bold">質問一覧</h1>
+        <main className="flex-1 overflow-auto">
+          <div className="px-6 py-8 max-w-7xl mx-auto">
+            <header className="space-y-4">
+              <h1 className="text-2xl font-bold">質問一覧</h1>
 
-            {/*検索ボックス・フィルタ*/}
-            <Input
-              className="max-w-xl bg-card"
-              placeholder="キーワードで質問を検索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+              <Input
+                className="max-w-xl bg-card"
+                placeholder="キーワードで質問を検索..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
 
-            {/* フィルタボタン */}
-            <div className="flex gap-2">
-              <Button
-              variant={filter === "all" ? "default" : "outline"}
-              onClick={() => setFilter("all")}
-              >
-                すべて
-                </Button>
+              <div className="flex gap-2">
                 <Button
-                variant={filter === "open" ? "default" : "outline"}
-                onClick={() => setFilter("open")}
+                  variant={filter === "all" ? "default" : "outline"}
+                  onClick={() => setFilter("all")}
+                >
+                  すべて
+                </Button>
+
+                <Button
+                  variant={filter === "open" ? "default" : "outline"}
+                  onClick={() => setFilter("open")}
                 >
                   <Clock className="mr-1 h-4 w-4" />
                   未解決
                 </Button>
-                
+
                 <Button
-                variant={filter === "solved" ? "default" : "outline"}
-                onClick={() => setFilter("solved")}
+                  variant={filter === "solved" ? "default" : "outline"}
+                  onClick={() => setFilter("solved")}
                 >
                   <CheckCircle className="mr-1 h-4 w-4" />
                   解決済
                 </Button>
-            </div>
-          </header>
+              </div>
+            </header>
 
-          {/* 質問一覧 */}
-          <div className="mt-6 grid gap-6 md:grid-cols-[2fr_1fr]">
-            <section className="space-y-4">
-              {loading ? (
-                <Card className="p-6">読み込み中...</Card>
-              ) : errorMsg ? (
-                <Card className="p-6 text-destructive">
-                  Supabaseエラー: {errorMsg}
-                </Card>
-              ) : (
-                <>
-                  {items.map((q) => (
-                    <QuestionCard key={q.id} question={q} />
-                  ))}
-
-                  <div className="flex gap-2 pt-4">
-                    {pages.map((p) => (
-                      <Button
-                        key={p}
-                        className={paginationBtnClass(p)}
-                        onClick={() => setPage(p)}
-                      >
-                        {p}
-                      </Button>
+            <div className="mt-6 grid gap-6 md:grid-cols-[2fr_1fr]">
+              <section className="space-y-4">
+                {loading ? (
+                  <Card className="p-6">読み込み中...</Card>
+                ) : errorMsg ? (
+                  <Card className="p-6 text-destructive">
+                    Supabaseエラー: {errorMsg}
+                  </Card>
+                ) : (
+                  <>
+                    {items.map((q) => (
+                      <QuestionCard key={q.id} question={q} />
                     ))}
-                  </div>
-                </>
-              )}
-            </section>
 
-            {/* 右側特徴パネル */}
-            <aside className="md:sticky md:top-24">
-              <FeaturePanel />
-            </aside>
+                    <div className="flex gap-2 pt-4">
+                      {pages.map((p) => (
+                        <Button
+                          key={p}
+                          className={paginationBtnClass(p)}
+                          onClick={() => setPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+
+              {/* 右側特徴パネル */}
+              <aside className="md:sticky md:top-24">
+                <FeaturePanel />
+              </aside>
+            </div>
           </div>
         </main>
       </div>
