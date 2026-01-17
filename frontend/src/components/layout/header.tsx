@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Sprout, PlusCircle, User, LogOut, ChevronDown } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,10 +15,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const handleLogout = () => {
-    console.log("Logout");
-    // ログアウト処理後、ログイン画面へリダイレクト
-    window.location.href = "/login";
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
   return (
