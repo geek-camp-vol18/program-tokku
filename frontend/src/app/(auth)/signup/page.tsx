@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Sprout, Mail, Eye, EyeOff, ArrowRight, CheckCircle2, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Sprout, Mail, Eye, EyeOff, ArrowRight, CheckCircle2, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase";
 
 const features = [
   "初心者歓迎のやさしいコミュニティ",
@@ -16,14 +18,66 @@ const features = [
 ];
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Register:", { username, email, password });
+    setError("");
+
+    // バリデーション
+    if (!username.trim()) {
+      setError("ユーザー名を入力してください");
+      return;
+    }
+    if (password.length < 8) {
+      setError("パスワードは8文字以上で入力してください");
+      return;
+    }
+
+    setIsLoading(true);
+
+    // 1. Supabase Authでユーザー作成
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (authError) {
+      if (authError.message.includes("already registered")) {
+        setError("このメールアドレスは既に登録されています");
+      } else {
+        setError("登録に失敗しました。もう一度お試しください");
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    // 2. profilesテーブルにレコード作成
+    if (authData.user) {
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: authData.user.id,
+        username: username.trim(),
+        points: 0,
+        solved_count: 0,
+        answer_count: 0,
+      });
+
+      if (profileError) {
+        console.error("Error creating profile:", profileError.message);
+        setError("プロフィールの作成に失敗しました");
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // 登録成功 → メール確認画面へリダイレクト
+    router.push(`/signup/confirm?email=${encodeURIComponent(email)}`);
   };
 
   return (
@@ -82,6 +136,13 @@ export default function RegisterPage() {
 
           <Card className="border-0 shadow-none lg:shadow-xl lg:border">
             <CardContent className="p-0 lg:p-6 space-y-6">
+              {/* エラーメッセージ */}
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
+                  {error}
+                </div>
+              )}
+
               {/* ユーザー名 */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -139,9 +200,18 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-11 gap-2" size="lg">
-                  新規登録
-                  <ArrowRight className="h-4 w-4" />
+                <Button type="submit" className="w-full h-11 gap-2" size="lg" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      登録中...
+                    </>
+                  ) : (
+                    <>
+                      新規登録
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </form>
 

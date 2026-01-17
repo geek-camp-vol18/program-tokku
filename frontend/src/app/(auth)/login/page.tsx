@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Sprout, Github, Mail, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Sprout, Mail, Eye, EyeOff, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase";
 
 const features = [
   "初心者歓迎のやさしいコミュニティ",
@@ -16,13 +18,38 @@ const features = [
 ];
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login:", { email, password });
+    setError("");
+    setIsLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error("Login error:", error.message);
+      if (error.message.includes("Email not confirmed")) {
+        setError("メールアドレスの確認が完了していません。登録時に届いたメールのリンクをクリックしてください");
+      } else if (error.message.includes("Invalid login credentials")) {
+        setError("メールアドレスまたはパスワードが正しくありません");
+      } else {
+        setError("ログインに失敗しました。もう一度お試しください");
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    // ログイン成功 → ホームへリダイレクト
+    router.push("/");
   };
 
   return (
@@ -82,6 +109,13 @@ export default function LoginPage() {
           <Card className="border-0 shadow-none lg:shadow-xl lg:border">
             <CardContent className="p-0 lg:p-6 space-y-6">
 
+              {/* エラーメッセージ */}
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
+                  {error}
+                </div>
+              )}
+
               {/* メールログイン */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -132,9 +166,18 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-11 gap-2" size="lg">
-                  ログイン
-                  <ArrowRight className="h-4 w-4" />
+                <Button type="submit" className="w-full h-11 gap-2" size="lg" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      ログイン中...
+                    </>
+                  ) : (
+                    <>
+                      ログイン
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </form>
 
