@@ -123,9 +123,9 @@ export default function NewQuestionPage() {
                       onChange={(e) => setContent(e.target.value)}
                     />
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5"><ImageIcon className="h-3 w-3"/> 画像を添付</Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5"><Code className="h-3 w-3"/> コードを挿入</Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5"><FileText className="h-3 w-3"/> ファイルを添付</Button>
+                      <Button variant="outline" size="m"className="h-10 px-4 text-xs gap-1.5"><ImageIcon className="h-3 w-3"/> 画像を添付</Button>
+                      <Button variant="outline" size="m"className="h-10 px-4 text-xs gap-1.5"><Code className="h-3 w-3"/> コードを挿入</Button>
+                      <Button variant="outline" size="m"className="h-10 px-4 text-xs gap-1.5"><FileText className="h-3 w-3"/> ファイルを添付</Button>
                     </div>
                   </div>
 
