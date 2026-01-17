@@ -64,11 +64,13 @@ export function Header() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // ログアウトしたらホーム(質問一覧)へリダイレクト
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
   };
 
+  // ユーザー名のイニシャル取得
   const userInitial = username ? username.charAt(0).toUpperCase() : "?";
 
   return (
