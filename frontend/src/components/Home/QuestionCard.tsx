@@ -138,7 +138,7 @@ export function QuestionCard({ question }: Props) {
             ))}
           </div>
 
-          {/* 下段：ユーザー情報 + 右にいいね数 */}
+          {/* 下段：ユーザー情報 */}
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
@@ -164,6 +164,7 @@ export function QuestionCard({ question }: Props) {
               </div>
             </div>
 
+            {/* いいね数 */}
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Heart className="h-4 w-4" />
               <span className="tabular-nums">{question.like_count}</span>
