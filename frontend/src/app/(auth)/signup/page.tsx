@@ -81,10 +81,15 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    // 1. Supabase Authでユーザー作成
+    // 1. Supabase Authでユーザー作成（usernameをメタデータに含める）
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          username: username.trim(),
+        },
+      },
     });
 
     if (authError) {
@@ -94,23 +99,7 @@ export default function RegisterPage() {
       return;
     }
 
-    // 2. profilesテーブルにレコード作成
-    if (authData.user) {
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: authData.user.id,
-        username: username.trim(),
-        points: 0,
-        solved_count: 0,
-        answer_count: 0,
-      });
-
-      if (profileError) {
-        console.error("Error creating profile:", profileError.message);
-        setError("プロフィールの作成に失敗しました");
-        setIsLoading(false);
-        return;
-      }
-    }
+    // プロフィールはSupabaseトリガーで自動作成される
 
     // 登録成功 → メール確認画面へリダイレクト
     router.push(`/signup/confirm?email=${encodeURIComponent(email)}`);
