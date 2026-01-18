@@ -78,10 +78,18 @@ export default async function CategoryTagPage({ params }: PageProps) {
 
   // データを表示用に整形
   const questions: QuestionWithDetails[] = (questionsData ?? []).map((q) => {
-    const profile = q.profiles as { username: string; avatar_url: string | null; ranks: { name: string } | null } | null;
-    const questionTags = q.question_tags as unknown as { tags: { name: string } | null }[];
-    const likes = q.likes as { id: string }[];
-    const answers = q.answers as { id: string }[];
+    // 1. profileの取得をより確実に
+    const rawProfile = q.profiles as any;
+    const profile = (Array.isArray(rawProfile) ? rawProfile[0] : rawProfile) as {
+      username: string;
+      avatar_url: string | null;
+      ranks: { name: string } | null;
+    } | null;
+
+    // 2. 他の関連データも安全に取得
+    const questionTags = (q.question_tags as any) ?? [];
+    const likes = (q.likes as any) ?? [];
+    const answers = (q.answers as any) ?? [];
 
     return {
       id: q.id,
@@ -89,12 +97,15 @@ export default async function CategoryTagPage({ params }: PageProps) {
       content: q.content,
       status: q.status as "open" | "closed",
       created_at: formatTimeAgo(q.created_at),
-      answerCount: answers?.length ?? 0,
-      likeCount: likes?.length ?? 0,
-      tags: questionTags?.map((qt) => qt.tags?.name).filter((name): name is string => !!name) ?? [],
+      answerCount: answers.length,
+      likeCount: likes.length,
+      // タグの抽出処理を安全に
+      tags: questionTags
+        .map((qt: any) => qt.tags?.name)
+        .filter((name: any): name is string => !!name),
       user: {
         username: profile?.username ?? "unknown",
-        rank: profile?.ranks?.name ?? "ビギナー",
+        rank: (profile?.ranks as any)?.name ?? "ビギナー", // ここもネストしているので安全に
         avatarInitial: profile?.username?.charAt(0).toUpperCase() ?? "?",
       },
     };
