@@ -176,7 +176,7 @@ export function QuestionCard({ question }: Props) {
 
             {/* いいね */}
             <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-              <LikeButton questionId={question.id} initialLikeCount={question.like_count} />
+              <LikeButton questionId={question.id} questionUserId={question.user_id} initialLikeCount={question.like_count} />
             </div>
           </div>
         </div>

@@ -6,11 +6,12 @@ import { supabase } from "@/lib/supabase";
 
 type Props = {
   questionId: string;
+  questionUserId: string;
   initialLikeCount: number;
   onLikeChanged?: (newCount: number) => void;
 };
 
-export function LikeButton({ questionId, initialLikeCount, onLikeChanged }: Props) {
+export function LikeButton({ questionId, questionUserId, initialLikeCount, onLikeChanged }: Props) {
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isLiked, setIsLiked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,9 +39,16 @@ export function LikeButton({ questionId, initialLikeCount, onLikeChanged }: Prop
     checkLikeStatus();
   }, [questionId]);
 
+  // 自分の質問かどうか
+  const isOwnQuestion = userId === questionUserId;
+
   const handleLike = async () => {
     if (!userId) {
       alert("いいねするにはログインが必要です");
+      return;
+    }
+
+    if (isOwnQuestion) {
       return;
     }
 
@@ -73,6 +81,20 @@ export function LikeButton({ questionId, initialLikeCount, onLikeChanged }: Prop
         setIsLiked(true);
         setLikeCount((prev) => prev + 1);
         onLikeChanged?.(likeCount + 1);
+
+        // 質問投稿者にポイント付与（+2pt）
+        const { data: question } = await supabase
+          .from("questions")
+          .select("user_id")
+          .eq("id", questionId)
+          .single();
+
+        if (question?.user_id && question.user_id !== userId) {
+          await supabase.rpc("increment_points", {
+            user_id: question.user_id,
+            amount: 2,
+          });
+        }
       }
     }
 
@@ -83,11 +105,13 @@ export function LikeButton({ questionId, initialLikeCount, onLikeChanged }: Prop
     <button
       type="button"
       onClick={handleLike}
-      disabled={isLoading}
-      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md transition-colors cursor-pointer ${
-        isLiked
-          ? "text-red-500 hover:text-red-600 hover:bg-red-50"
-          : "text-muted-foreground hover:text-red-500 hover:bg-muted"
+      disabled={isLoading || isOwnQuestion}
+      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md transition-colors ${
+        isOwnQuestion
+          ? "text-muted-foreground/50 cursor-not-allowed"
+          : isLiked
+            ? "text-red-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+            : "text-muted-foreground hover:text-red-500 hover:bg-muted cursor-pointer"
       } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />

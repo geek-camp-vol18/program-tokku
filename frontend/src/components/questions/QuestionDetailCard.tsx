@@ -119,7 +119,7 @@ export function QuestionDetailCard({ question, tags, answerCount, likeCount, ask
 
       {/* いいね・回答数 */}
       <div className="mt-5 flex items-center gap-4 text-sm">
-        <LikeButton questionId={question.id} initialLikeCount={likeCount} />
+        <LikeButton questionId={question.id} questionUserId={question.user_id} initialLikeCount={likeCount} />
         <div className="flex items-center gap-1 text-muted-foreground">
           <MessageSquare className="h-4 w-4" />
           <span className="tabular-nums">{answerCount}</span>
