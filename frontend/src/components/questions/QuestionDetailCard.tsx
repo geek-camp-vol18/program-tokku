@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageSquare } from "lucide-react";
 
 import { LikeButton } from "@/components/common/LikeButton";
+import { MarkdownPreview } from "@/components/questions/MarkdownPreview";
 import type { Question } from "@/types/question";
 
 type Props = {
@@ -86,8 +87,8 @@ export function QuestionDetailCard({ question, tags, answerCount, likeCount, ask
         </div>
       </div>
 
-      <div className="mt-5 whitespace-pre-wrap text-sm leading-relaxed">
-        {question.content}
+      <div className="mt-5">
+        <MarkdownPreview content={question.content} />
       </div>
 
       {/* タグ一覧 */}
