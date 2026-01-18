@@ -110,14 +110,22 @@ export function QuestionCard({ question }: Props) {
 
         {/* 右：本文エリア */}
         <div className="min-w-0 flex-1">
-          {/* 上段：ステータスバッジ */}
-          <div className="flex items-center justify-between gap-3">
+          {/* 上段：ステータスバッジ・カテゴリバッジ */}
+          <div className="flex items-center gap-2">
             <Badge
               variant="outline"
               className={["rounded-full", tone.badge].join(" ")}
             >
               {statusText(question.status)}
             </Badge>
+            {question.category && (
+              <Badge
+                variant="outline"
+                className="rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+              >
+                {question.category}
+              </Badge>
+            )}
           </div>
 
           {/* タイトル */}
