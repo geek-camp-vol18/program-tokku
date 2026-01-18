@@ -208,7 +208,8 @@ export default function NewQuestionPage() {
           title,
           image_url: imageUrls.length > 0 ? imageUrls[0] : null,
           content: fullContent,
-          status: "open"
+          status: "open",
+          category: selectedCategory || null,
         }])
         .select("id")
         .single();

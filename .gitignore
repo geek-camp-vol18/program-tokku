@@ -31,3 +31,4 @@ npm-debug.log*
 
 # Docker
 postgres_data/
+tsconfig.tsbuildinfo

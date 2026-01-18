@@ -8,6 +8,7 @@ export interface Question {
   content: string;           // 内容
   image_url: string | null;  // 添付画像URL
   status: "open" | "closed"; // open=募集中, closed=解決済み
+  category: string | null;   // カテゴリ（バグ、環境構築等）
   created_at: string;        // 投稿日時
 }
 

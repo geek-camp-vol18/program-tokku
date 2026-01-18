@@ -82,6 +82,7 @@ function mockToDetail(found: QuestionListItem): QuestionDetailData {
       content: found.content,
       image_url: found.image_url ?? null,
       status: found.status,
+      category: null,
       created_at: found.created_at,
     },
     tags: found.tags,
@@ -149,6 +150,7 @@ export function useQuestionDetail(id: string | undefined) {
           content,
           image_url,
           status,
+          category,
           created_at,
 
           profiles (
@@ -236,6 +238,7 @@ export function useQuestionDetail(id: string | undefined) {
           content: r.content,
           image_url: r.image_url,
           status: r.status,
+          category: (r as QuestionJoined & { category?: string | null }).category ?? null,
           created_at: r.created_at,
         },
         tags,
