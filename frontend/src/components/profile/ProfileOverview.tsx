@@ -65,9 +65,9 @@ const displayTags = data?.tag_stats || [];
             <div className="flex items-start gap-6">
               {/* ProfileOverview.tsx */}
               <Avatar className="h-24 w-24 bg-[#E6F4F1] text-[#2D9E8B]">
-                {/* data.avater_url が「空文字」や「undefined」でない場合のみ img を出す */}
-                {data?.avater_url && data.avater_url !== "" ? (
-                  <img src={data.avater_url} alt={data.username} onError={(e) => (e.currentTarget.style.display = 'none')} />
+                {/* data.avatar_url が「空文字」や「undefined」でない場合のみ img を出す */}
+                {data?.avatar_url && data.avatar_url !== "" ? (
+                  <img src={data.avatar_url} alt={data.username} onError={(e) => (e.currentTarget.style.display = 'none')} />
                 ) : (
                   <AvatarFallback className="text-4xl">
                     {data?.username ? data.username[0] : "U"}

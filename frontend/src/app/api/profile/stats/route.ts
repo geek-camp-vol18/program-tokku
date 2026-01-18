@@ -61,17 +61,27 @@ export async function GET(request: Request) {
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
 
-    // 4. バッジ情報を整形
+    // 4. ユーザーが回答した質問と解決した質問の数を取得
+    const [answeredResponse, solvedResponse] = await Promise.all([
+      // ユーザーが回答した質問（全て）
+      supabase.from('answers').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+      // ユーザーが解決した質問（ベストアンサー）
+      supabase.from('answers').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_best_answer', true)
+    ]);
+
+    // 5. バッジ情報を整形
     const badges = badgesResponse.data?.map((ub: any) => ({
       id: ub.badge_id,
       name: ub.badges.name,
       acquired: true
     })) || [];
 
-    // 5. レスポンスを返す
+    // 6. レスポンスを返す
     return NextResponse.json({
       liked_count: likesResponse.count || 0,
       best_answer_count: bestAnswersResponse.count || 0,
+      answered_count: answeredResponse.count || 0,
+      solved_count: solvedResponse.count || 0,
       badges: badges,
       tag_stats: tag_stats
     });
