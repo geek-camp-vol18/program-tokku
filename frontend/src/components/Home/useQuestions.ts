@@ -7,6 +7,8 @@ import type { Question } from "@/types/question";
 import type { Profile, Rank } from "@/types/user";
 
 import type { Filter, QuestionListItem } from "@/components/Home/homeTypes";
+
+export type { Filter };
 import { dummyQuestions } from "@/components/Home/dummyQuestions";
 
 /**
@@ -49,7 +51,7 @@ function normalizeUsername(v: unknown): string {
 // DBの行データを画面用の QuestionListItem に変換
 function toListItem(row: QuestionRowJoined): QuestionListItem {
   const tags: string[] =
-    row.question_tags?.map((qt) => qt.tags?.name).filter(Boolean) ?? [];
+    row.question_tags?.map((qt) => qt.tags?.name).filter((name): name is string => !!name) ?? [];
 
   const answer_count = row.answers?.[0]?.count ?? 0;
   const like_count = row.likes?.[0]?.count ?? 0;
