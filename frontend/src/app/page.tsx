@@ -8,7 +8,7 @@ import { FeaturePanel } from "@/components/Home/FeaturePanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Clock, CheckCircle } from "lucide-react";
+import { Clock, CheckCircle, MessageCircleQuestion } from "lucide-react";
 
 import { QuestionCard } from "@/components/Home/QuestionCard";
 import { useQuestions, type Filter } from "@/components/Home/useQuestions";
@@ -41,7 +41,7 @@ export default function Home() {
       "h-9 px-4 rounded-lg",
       isActive
         ? "border border-primary text-primary bg-primary/10"
-        : "border border-border bg-card hover:bg-muted",
+        : "border border-border bg-card text-foreground hover:bg-muted",
     ].join(" ");
   };
 
@@ -98,23 +98,34 @@ export default function Home() {
                   <Card className="p-6 text-destructive">
                     Supabaseエラー: {errorMsg}
                   </Card>
+                ) : items.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <MessageCircleQuestion className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                    <p className="mt-4 text-muted-foreground">
+                      {searchQuery
+                        ? "検索条件に一致する質問がありません"
+                        : "質問がまだありません"}
+                    </p>
+                  </Card>
                 ) : (
                   <>
                     {items.map((q) => (
                       <QuestionCard key={q.id} question={q} />
                     ))}
 
-                    <div className="flex gap-2 pt-4">
-                      {pages.map((p) => (
-                        <Button
-                          key={p}
-                          className={paginationBtnClass(p)}
-                          onClick={() => setPage(p)}
-                        >
-                          {p}
-                        </Button>
-                      ))}
-                    </div>
+                    {pages.length > 1 && (
+                      <div className="flex gap-2 pt-4">
+                        {pages.map((p) => (
+                          <Button
+                            key={p}
+                            className={paginationBtnClass(p)}
+                            onClick={() => setPage(p)}
+                          >
+                            {p}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
               </section>
