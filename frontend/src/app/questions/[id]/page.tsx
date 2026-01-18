@@ -50,7 +50,25 @@ export default function QuestionDetailPage() {
       console.error("Question status update error:", statusError.message);
     }
 
-    // 3. データを再取得
+    // 3. 回答者にポイント付与（+50pt）
+    const { data: answer } = await supabase
+      .from("answers")
+      .select("user_id")
+      .eq("id", answerId)
+      .single();
+
+    if (answer?.user_id) {
+      const { error: pointError } = await supabase.rpc("increment_points", {
+        user_id: answer.user_id,
+        amount: 50,
+      });
+
+      if (pointError) {
+        console.error("ポイント付与エラー:", pointError.message);
+      }
+    }
+
+    // 4. データを再取得
     refetch();
   }, [id, refetch]);
 
