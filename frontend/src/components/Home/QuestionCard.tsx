@@ -13,7 +13,9 @@ function makeExcerpt(content: string, maxLen = 90): string {
 }
 
 function formatRelativeTime(iso: string): string {
-  const d = new Date(iso);
+  // UTCとして解釈するために、末尾にZがなければ追加
+  const utcIso = iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z";
+  const d = new Date(utcIso);
   const ms = d.getTime();
   if (Number.isNaN(ms)) return "";
 
