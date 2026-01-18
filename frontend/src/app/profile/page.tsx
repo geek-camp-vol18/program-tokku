@@ -1,31 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ProfileOverview } from "@/components/profile/ProfileOverview";
-import { PointHistory } from "@/components/profile/PointHistory";
-import { SkillTags } from "@/components/profile/SkillTags";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadProfileData() {
       try {
         setLoading(true);
-        // 1. セッション確認
-        const { data: { user } } = await supabase.auth.getUser();
+        
+        // セッション確認
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) {
+          console.error("認証エラー:", authError);
+          router.replace("/login");
+          return;
+        }
         
         if (!user) {
           console.error("ログインユーザーが見つかりません");
-          setLoading(false);
+          router.replace("/login");
           return;
         }
 
-        // 2. 基本情報をSupabaseから並列で取得
+        // 基本情報を取得
         const [profileResponse, statsResponse] = await Promise.all([
           supabase
             .from('profiles')
@@ -35,23 +43,27 @@ export default function ProfilePage() {
           fetch(`/api/profile/stats?userId=${user.id}`)
         ]);
 
-        const { data: baseData } = profileResponse;
+        const { data: baseData, error: profileError } = profileResponse;
 
-        if (!baseData) {
+        if (profileError) {
+          console.error("プロフィール取得エラー:", profileError);
+          setError("プロフィールの取得に失敗しました");
           setLoading(false);
           return;
         }
 
-        // 3. APIからの詳細データを取得
+        if (!baseData) {
+          setError("プロフィールが見つかりません");
+          setLoading(false);
+          return;
+        }
+
+        // APIからの詳細データを取得
         let detailData = null;
         if (statsResponse.ok) {
           detailData = await statsResponse.json();
-          console.log('API Response:', detailData);
-        } else {
-          console.error('API Error:', statsResponse.status, await statsResponse.text());
         }
 
-        // 4. 一度だけマージしてsetProfile
         setProfile({
           ...baseData,
           ...detailData,
@@ -61,12 +73,13 @@ export default function ProfilePage() {
 
       } catch (err) {
         console.error("エラーが発生しました:", err);
+        setError("予期しないエラーが発生しました");
         setLoading(false);
       }
     }
 
     loadProfileData();
-  }, []);
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-muted">
@@ -80,23 +93,16 @@ export default function ProfilePage() {
           <div className="w-full">
             {loading ? (
               <div className="p-10 text-center">読み込み中...</div>
+            ) : error ? (
+              <div className="p-10 text-center text-red-600">{error}</div>
             ) : profile ? (
               <ProfileOverview data={profile} />
             ) : (
               <div className="p-10 text-center">
-                プロフィールが見つかりません。ログインし直してください。
+                プロフィールが見つかりません
               </div>
             )}
           </div>
-          {/* 下段：ポイント履歴と得意タグ（必要に応じて） */}
-          {/* <div className="grid grid-cols-3 gap-6">
-            <div className="col-span-2 space-y-6">
-              <PointHistory />
-            </div>
-            <div className="space-y-6">
-              <SkillTags />
-            </div>
-          </div> */}
         </main>
       </div>
     </div>

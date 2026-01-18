@@ -30,7 +30,9 @@ function statusBadgeClass(status: Question["status"]) {
 }
 
 function formatJPDateTime(iso: string) {
-  const d = new Date(iso);
+  // UTCとして解釈するために、末尾にZがなければ追加
+  const utcIso = iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z";
+  const d = new Date(utcIso);
   if (Number.isNaN(d.getTime())) return "";
   const yyyy = d.getFullYear();
   const mm = d.getMonth() + 1;
