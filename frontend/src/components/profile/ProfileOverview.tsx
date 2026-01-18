@@ -4,30 +4,56 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Award } from "lucide-react";
+interface ProfileData {
+  id: string;
+  username: string;
+  avatar_url:string;
+  bio:string;
+  points:number;
+  rank_id:string;
+  solved_count:number;
+  answered_count:number;
+  liked_count:number;
+  best_answer_count:number;
+  created_at:string;
+  badgeData?: any[]; 
+  tag_stats?: { name: string; count: number }[];
+}
 
-// 統計データの設定
+export function ProfileOverview({ data }: { data: ProfileData | null }) {
+  // データが届くまでの表示
+  if (!data) return <div className="p-10 text-center">読み込み中...</div>;
+
+  const currentPoint = data.points || 0;
+  const rankId = data.rank_id || 'beginner'; // デフォルト値を設定
+
+  // Supabaseから取得したポイントを使って計算
+  const nextRankPoint = data.rank_id === 'beginner' ? 500 : data.rank_id === 'developer' ? 1000 : 100
+  const nextRank_id = data.rank_id === 'beginner' ? '中堅（デベロッパー）' : data.rank_id === 'developer' ? '熟練（ウィザード）' : '初学者（ビギナー）'
+  const progress = (currentPoint / nextRankPoint) * 100;
+
+  // 統計データの設定
 const stats = [
-  { label: "質問", value: 8, sub: "+5pt" },
-  { label: "回答", value: 25, sub: "+10pt" },
-  { label: "ベストアンサー", value: 12, sub: "+50pt" },
-  { label: "共感された", value: 35, sub: "+2pt" },
+  { label: "質問", value: data.answered_count, sub: "+5pt" },
+  { label: "回答", value: data.solved_count, sub: "+10pt" },
+  { label: "ベストアンサー", value: data.best_answer_count, sub: "+50pt" },
+  { label: "共感された", value: data.liked_count, sub: "+2pt" },
 ];
 
 // バッジデータの設定
-const badges = [
+const displayBadges = data?.badgeData || [
   { name: "環境構築職人", acquired: false },
   { name: "今週のヒーロー", acquired: false },
   { name: "初めての解決", acquired: false },
   { name: "いいね100", acquired: false },
 ];
 
-export function ProfileOverview() {
-  const currentPoint = 470;
-  const nextRankPoint = 500;
-  const progress = (currentPoint / nextRankPoint) * 100;
+const displayTags = data?.tag_stats || [];
+
 
   return (
     <Card className="max-w-6xl mx-auto border-none shadow-sm bg-white">
+    {/*<Card className="w-full border-none shadow-sm bg-white overflow-hidden"> */}
       <CardContent className="p-8">
         
         {/* 上段：左右分割レイアウト */}
@@ -37,18 +63,25 @@ export function ProfileOverview() {
           <div className="flex-1 space-y-12">
             {/* ユーザー情報セクション */}
             <div className="flex items-start gap-6">
+              {/* ProfileOverview.tsx */}
               <Avatar className="h-24 w-24 bg-[#E6F4F1] text-[#2D9E8B]">
-                <AvatarFallback className="text-4xl">Y</AvatarFallback>
+                {/* data.avater_url が「空文字」や「undefined」でない場合のみ img を出す */}
+                {data?.avater_url && data.avater_url !== "" ? (
+                  <img src={data.avater_url} alt={data.username} onError={(e) => (e.currentTarget.style.display = 'none')} />
+                ) : (
+                  <AvatarFallback className="text-4xl">
+                    {data?.username ? data.username[0] : "U"}
+                  </AvatarFallback>
+                )}
               </Avatar>
-
               <div className="flex-1 pt-2">
                 <div className="flex items-center gap-3 mb-1">
-                  <h2 className="text-4xl font-bold text-slate-800">山田太郎</h2>
+                  <h2 className="text-4xl font-bold text-slate-800">{data.username}</h2>
                   <span className="text-xs px-3 py-1 rounded-full bg-[#E6F4F1] text-[#2D9E8B] font-bold">
                     ビギナー
                   </span>
                 </div>
-                <p className="text-base text-slate-400 mb-6">@yamada</p>
+                <p className="text-base text-slate-400 mb-6">@{data.id}</p>
                 
                 <div className="flex items-baseline gap-2">
                   <div className="flex items-center">
@@ -80,7 +113,7 @@ export function ProfileOverview() {
               </div>
               <Progress value={progress} className="h-2.5 bg-slate-100" />
               <p className="text-xs text-slate-400">
-                あと <span className="font-bold">{nextRankPoint - currentPoint}pt</span> で「デベロッパー」に昇格！
+                あと <span className="font-bold">{nextRankPoint - currentPoint}pt</span> で「{nextRank_id}」に昇格！
               </p>
             </div>
           </div>
@@ -89,17 +122,41 @@ export function ProfileOverview() {
           <div className="w-full md:w-72 border border-slate-100 rounded-2xl p-6 py-8 bg-slate-50/30">
             <h3 className="text-sm font-bold text-slate-700 mb-6">獲得バッジ</h3>
             <div className="grid grid-cols-2 gap-4">
-              {badges.map((badge) => (
-                <div key={badge.name} className="flex flex-col items-center gap-3">
-                  <div className="w-20 h-20 rounded-xl bg-slate-100/50 border border-slate-100 transition-colors" />
-                  <p className="text-[10px] text-center text-slate-400 font-medium leading-tight">
+              {/* バッジのループ表示部分 */}
+                {displayBadges.map((badge) => (
+                  <div 
+                    key={badge.name} 
+                    className={badge.acquired ? "text-primary" : "text-muted-foreground opacity-50"}
+                  >
                     {badge.name}
-                  </p>
-                </div>
+                  </div>
               ))}
             </div>
           </div>
         </div>
+        {/* 
+         右側：得意タグセクション 
+        <div className="border border-slate-100 rounded-2xl p-6 bg-white shadow-sm">
+          <h3 className="text-sm font-bold text-slate-700 mb-6">得意タグ</h3>
+          <div className="space-y-4">
+            {displayTags.length > 0 ? (
+              displayTags.slice(0, 5).map((tag: any) => ( // 上位5つを表示
+                <div key={tag.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-600">{tag.name}</span>
+                    {tag === displayTags[0] && <span className="text-xs">🔥</span>}
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                    {tag.count} 問解決
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-slate-400">まだ解決した質問はありません</p>
+            )}
+          </div>
+        </div>
+        */}
 
         {/* 下段：4つの統計メトリクス */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 mt-8">
