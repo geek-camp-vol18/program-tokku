@@ -1,17 +1,20 @@
 "use client";
 
+// 質問一覧のカードコンポーネント
 import type { QuestionListItem } from "@/components/Home/homeTypes";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { LikeButton } from "@/components/common/LikeButton";
 
+// 抜粋を作成
 function makeExcerpt(content: string, maxLen = 90): string {
   const oneLine = (content ?? "").replace(/\s+/g, " ").trim();
   if (!oneLine) return "";
   return oneLine.length > maxLen ? oneLine.slice(0, maxLen) + "…" : oneLine;
 }
 
+// 相対時間をフォーマット
 function formatRelativeTime(iso: string): string {
   const d = new Date(iso);
   const ms = d.getTime();
@@ -27,11 +30,12 @@ function formatRelativeTime(iso: string): string {
   return `${diffDay}日前`;
 }
 
+// ステータスの表示テキスト
 function statusText(status: QuestionListItem["status"]) {
   return status === "open" ? "回答募集中" : "解決済み";
 }
 
-// ステータスに合わせた色
+// ステータスクラス
 function toneClass(status: QuestionListItem["status"]) {
   return status === "open"
     ? {
@@ -45,6 +49,7 @@ function toneClass(status: QuestionListItem["status"]) {
         num: "text-emerald-700",
       };
 }
+
 
 type Props = {
   question: QuestionListItem;
@@ -131,14 +136,14 @@ export function QuestionCard({ question }: Props) {
           {/* タグ */}
           <div className="mt-3 flex flex-wrap gap-2">
             {question.tags.slice(0, 3).map((t) => (
-            <Badge key={t} className="rounded-full bg-orange-50 text-orange-700 text-xs font-normal border border-orange-200"
+            <Badge key={t} className="pointer-events-none select-none rounded-full bg-orange-50 text-orange-700 text-xs font-normal border border-orange-200"
              >
               {t}
             </Badge>
             ))}
           </div>
 
-          {/* 下段：ユーザー情報 */}
+          {/* 下段：ユーザー情報 + 右にいいね数 */}
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
@@ -164,9 +169,9 @@ export function QuestionCard({ question }: Props) {
               </div>
             </div>
 
-            {/* いいね */}
-            <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-              <LikeButton questionId={question.id} initialLikeCount={question.like_count} />
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Heart className="h-4 w-4" />
+              <span className="tabular-nums">{question.like_count}</span>
             </div>
           </div>
         </div>

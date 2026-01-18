@@ -97,7 +97,7 @@ export function QuestionDetailCard({ question, tags, answerCount, likeCount, ask
           tags.map((t) => (
             <Badge
               key={t}
-              className="rounded-full bg-stone-100 text-stone-600 text-xs font-normal border border-stone-200"
+              className="pointer-events-none select-none rounded-full bg-orange-50 text-orange-700 text-xs font-normal border boder-orange-200"
             >
               {t}
             </Badge>
