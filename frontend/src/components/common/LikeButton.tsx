@@ -1,0 +1,127 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Heart } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+type Props = {
+  questionId: string;
+  initialLikeCount: number;
+  onLikeChanged?: (newCount: number) => void;
+};
+
+export function LikeButton({ questionId, initialLikeCount, onLikeChanged }: Props) {
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // ユーザーとイイネ状態を取得
+  useEffect(() => {
+    async function checkLikeStatus() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+
+      setUserId(userData.user.id);
+
+      // 既にいいねしているか確認
+      const { data: likeData } = await supabase
+        .from("likes")
+        .select("id")
+        .eq("question_id", questionId)
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
+
+      setIsLiked(!!likeData);
+    }
+
+    checkLikeStatus();
+  }, [questionId]);
+
+  const handleLike = async () => {
+    if (!userId) {
+      alert("いいねするにはログインが必要です");
+      return;
+    }
+
+    setIsLoading(true);
+
+    if (isLiked) {
+      // いいね解除
+      const { error } = await supabase
+        .from("likes")
+        .delete()
+        .eq("question_id", questionId)
+        .eq("user_id", userId);
+
+      if (!error) {
+        setIsLiked(false);
+        setLikeCount((prev) => prev - 1);
+        onLikeChanged?.(likeCount - 1);
+        
+        // ポイント削除（API経由）
+        try {
+          await fetch('/api/points/like', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, isAdding: false }),
+          });
+        } catch (error) {
+          console.error('Error updating points:', error);
+        }
+      }
+    } else {
+      // いいね追加
+      const { error } = await supabase.from("likes").insert({
+        id: crypto.randomUUID(),
+        question_id: questionId,
+        user_id: userId,
+      });
+
+      if (error) {
+        console.error("Like insert error:", error.message);
+      } else {
+        setIsLiked(true);
+        setLikeCount((prev) => prev + 1);
+        onLikeChanged?.(likeCount + 1);
+        
+        // 質問の投稿者のポイント加算（API経由）
+        try {
+          const { data: question } = await supabase
+            .from("questions")
+            .select("user_id")
+            .eq("id", questionId)
+            .single();
+          
+          if (question) {
+            await fetch('/api/points/like', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: question.user_id, isAdding: true }),
+            });
+          }
+        } catch (error) {
+          console.error('Error adding points:', error);
+        }
+      }
+    }
+
+    setIsLoading(false);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleLike}
+      disabled={isLoading}
+      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md transition-colors cursor-pointer ${
+        isLiked
+          ? "text-red-500 hover:text-red-600 hover:bg-red-50"
+          : "text-muted-foreground hover:text-red-500 hover:bg-muted"
+      } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+    >
+      <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
+      <span className="tabular-nums text-sm font-medium">{likeCount}</span>
+    </button>
+  );
+}
