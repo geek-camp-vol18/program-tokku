@@ -20,6 +20,7 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [username, setUsername] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // クライアントサイドでのみ描画を確定させる（ハイドレーションエラー防止）
   useEffect(() => {
@@ -32,14 +33,15 @@ export function Header() {
     supabase.auth.getUser().then(({ data }) => {
       setIsLoggedIn(!!data.user);
       if (data.user) {
-        // プロフィールからユーザー名を取得
+        // プロフィールからユーザー名とアバターを取得
         supabase
           .from("profiles")
-          .select("username")
+          .select("username, avatar_url")
           .eq("id", data.user.id)
           .single()
           .then(({ data: profile }) => {
             setUsername(profile?.username || "");
+            setAvatarUrl(profile?.avatar_url || null);
           });
       }
     });
@@ -50,14 +52,16 @@ export function Header() {
       if (session?.user) {
         supabase
           .from("profiles")
-          .select("username")
+          .select("username, avatar_url")
           .eq("id", session.user.id)
           .single()
           .then(({ data: profile }) => {
             setUsername(profile?.username || "");
+            setAvatarUrl(profile?.avatar_url || null);
           });
       } else {
         setUsername("");
+        setAvatarUrl(null);
       }
     });
 
@@ -105,7 +109,7 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-1 focus:outline-none">
                     <Avatar className="h-9 w-9 border-2 border-primary/20 cursor-pointer hover:border-primary/40 transition-colors">
-                      <AvatarImage src="/avatar.png" alt="ユーザー" />
+                      {avatarUrl && <AvatarImage src={avatarUrl} alt="ユーザー" />}
                       <AvatarFallback className="bg-primary/10 text-primary text-sm">
                         {userInitial}
                       </AvatarFallback>

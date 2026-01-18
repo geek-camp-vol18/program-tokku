@@ -11,10 +11,10 @@ interface ProfileData {
   bio:string;
   points:number;
   rank_id:string;
-  solved_count:number;
+  question_count:number;
   answered_count:number;
+  solved_count:number;  
   liked_count:number;
-  best_answer_count:number;
   created_at:string;
   badgeData?: any[]; 
   tag_stats?: { name: string; count: number }[];
@@ -25,18 +25,79 @@ export function ProfileOverview({ data }: { data: ProfileData | null }) {
   if (!data) return <div className="p-10 text-center">読み込み中...</div>;
 
   const currentPoint = data.points || 0;
-  const rankId = data.rank_id || 'beginner'; // デフォルト値を設定
 
-  // Supabaseから取得したポイントを使って計算
-  const nextRankPoint = data.rank_id === 'beginner' ? 500 : data.rank_id === 'developer' ? 1000 : 100
-  const nextRank_id = data.rank_id === 'beginner' ? '中堅（デベロッパー）' : data.rank_id === 'developer' ? '熟練（ウィザード）' : '初学者（ビギナー）'
-  const progress = (currentPoint / nextRankPoint) * 100;
+  // ランク管理ロジック
+  const getRankInfo = (points: number) => {
+    if (points < 100) {
+      return {
+        rank: 'none',
+        rankName: 'ひよっこ',
+        icon: '🔰',
+        minPoint: 0,
+        maxPoint: 99,
+        nextRank: 'ビギナー',
+        nextRankPoint: 100
+      };
+    } else if (points < 500) {
+      return {
+        rank: 'beginner',
+        rankName: 'ビギナー',
+        icon: '🌱',
+        minPoint: 100,
+        maxPoint: 499,
+        nextRank: 'ディベロッパー',
+        nextRankPoint: 500
+      };
+    } else if (points < 1000) {
+      return {
+        rank: 'developer',
+        rankName: 'ディベロッパー',
+        icon: '💻',
+        minPoint: 500,
+        maxPoint: 999,
+        nextRank: 'ウィザード',
+        nextRankPoint: 1000
+      };
+    } else {
+      return {
+        rank: 'wizard',
+        rankName: 'ウィザード',
+        icon: '🧙',
+        minPoint: 1000,
+        maxPoint: Infinity,
+        nextRank: null,
+        nextRankPoint: null
+      };
+    }
+  };
+
+  const rankInfo = getRankInfo(currentPoint);
+  
+  // 次のランク情報も取得（アイコン用）
+  const nextRankInfo = rankInfo.nextRankPoint !== null 
+    ? getRankInfo(rankInfo.nextRankPoint) 
+    : null;
+  
+  // プログレスバーの計算
+  let progress: number;
+  if (rankInfo.nextRankPoint === null) {
+    // ウィザードの場合は100%
+    progress = 100;
+  } else {
+    const pointsInRange = currentPoint - rankInfo.minPoint;
+    const rangeSize = rankInfo.nextRankPoint - rankInfo.minPoint;
+    progress = (pointsInRange / rangeSize) * 100;
+  }
+
+  const pointsUntilNextRank = rankInfo.nextRankPoint !== null 
+    ? rankInfo.nextRankPoint - currentPoint 
+    : 0;
 
   // 統計データの設定
 const stats = [
-  { label: "質問", value: data.answered_count, sub: "+5pt" },
-  { label: "回答", value: data.solved_count, sub: "+10pt" },
-  { label: "ベストアンサー", value: data.best_answer_count, sub: "+50pt" },
+  { label: "質問", value: data.question_count, sub: "+5pt" },
+  { label: "回答", value: data.answered_count, sub: "+10pt" },
+  { label: "ベストアンサー", value: data.solved_count, sub: "+50pt" },
   { label: "共感された", value: data.liked_count, sub: "+2pt" },
 ];
 
@@ -60,7 +121,7 @@ const displayTags = data?.tag_stats || [];
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* 左側：ユーザー基本情報とプログレスバー */}
-          <div className="flex-1 space-y-12">
+            <div className="flex-1 space-y-6">
             {/* ユーザー情報セクション */}
             <div className="flex items-start gap-6">
               {/* ProfileOverview.tsx */}
@@ -78,12 +139,26 @@ const displayTags = data?.tag_stats || [];
                 <div className="flex items-center gap-3 mb-1">
                   <h2 className="text-4xl font-bold text-slate-800">{data.username}</h2>
                   <span className="text-xs px-3 py-1 rounded-full bg-[#E6F4F1] text-[#2D9E8B] font-bold">
-                    ビギナー
+                    {rankInfo.icon} {rankInfo.rankName}
                   </span>
                 </div>
-                <p className="text-base text-slate-400 mb-6">@{data.id}</p>
+                <p className="text-base text-slate-400 mb-2">@{data.id}</p>
+                {data?.bio && (
+                  <p className="text-base text-slate-600 mb-3">{data.bio}</p>
+                )}
                 
-                <div className="flex items-baseline gap-2">
+                
+                {data?.created_at && (
+                  <p className="text-xs text-slate-400 mb-3">
+                    {(() => {
+                      const date = new Date(data.created_at);
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      return `${year}年${month}月から利用しています`;
+                    })()}
+                  </p>
+                )}
+                <div className="flex items-baseline gap-2 mt-2">
                   <div className="flex items-center">
                     <span className="text-orange-400 text-4xl mr-3">⚡</span>
                     <span className="text-3xl font-bold text-slate-900 tracking-tighter">
@@ -100,21 +175,29 @@ const displayTags = data?.tag_stats || [];
             {/* プログレスバーセクション */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 text-slate-500">
-                    <Award className="h-4 w-4 text-[#2D9E8B]" /> 
-                    <span className="text-sm font-medium">次のランク：</span>
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">💻 デベロッパー</span>
+                <div className="flex items-center gap-1.5 text-slate-500">
+                  <Award className="h-4 w-4 text-[#2D9E8B]" /> 
+                  <span className="text-sm font-medium">
+                    {rankInfo.nextRank ? `次のランク：${nextRankInfo?.icon} ${rankInfo.nextRank}` : '最高ランク達成！'}
+                  </span>
                 </div>
                 <span className="text-xs font-medium text-slate-400">
-                  {currentPoint} / {nextRankPoint} pt
+                  {rankInfo.nextRankPoint !== null 
+                    ? `${currentPoint} / ${rankInfo.nextRankPoint} pt`
+                    : `${currentPoint} pt`
+                  }
                 </span>
               </div>
               <Progress value={progress} className="h-2.5 bg-slate-100" />
-              <p className="text-xs text-slate-400">
-                あと <span className="font-bold">{nextRankPoint - currentPoint}pt</span> で「{nextRank_id}」に昇格！
-              </p>
+              {rankInfo.nextRankPoint !== null ? (
+                <p className="text-xs text-slate-400">
+                  あと <span className="font-bold">{pointsUntilNextRank}pt</span> で「{rankInfo.nextRank}」に昇格！
+                </p>
+              ) : (
+                <p className="text-xs text-slate-400">
+                  <span className="font-bold">🎉 ウィザードランクに達成しました！</span>
+                </p>
+              )}
             </div>
           </div>
 

@@ -15,13 +15,21 @@ export async function GET(request: Request) {
   );
 
   try {
-    // 1. 基本的な統計とバッジ、および「ベストアンサーに紐づく全タグ」を並列で取得
-    const [likesResponse, bestAnswersResponse, badgesResponse, tagsResponse] = await Promise.all([
-      // 総いいね数
-      supabase.from('likes').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    console.log('userId:', userId);
+    
+    // 1. 基本的な統計を並列で取得（countオプションのみを使用）
+    const [questionsResponse, answersResponse, solvedResponse, likesResponse, badgesResponse, tagsResponse] = await Promise.all([
+      // ユーザーが投稿した質問数
+      supabase.from('questions').select('id', { count: 'exact' }).eq('user_id', userId),
       
-      // 総ベストアンサー数
-      supabase.from('answers').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_best_answer', true),
+      // ユーザーが回答した総数
+      supabase.from('answers').select('id', { count: 'exact' }).eq('user_id', userId),
+      
+      // ユーザーのベストアンサー数
+      supabase.from('answers').select('id', { count: 'exact' }).eq('user_id', userId).eq('is_best_answer', true),
+      
+      // ユーザーが受け取ったいいね数
+      supabase.from('likes').select('id', { count: 'exact' }).eq('user_id', userId),
       
       // バッジ一覧
       supabase.from('user_badges').select('badge_id, badges(id, name)').eq('user_id', userId),
@@ -39,6 +47,12 @@ export async function GET(request: Request) {
         .eq('user_id', userId)
         .eq('is_best_answer', true)
     ]);
+
+    console.log('questionsResponse:', questionsResponse);
+    console.log('answersResponse:', answersResponse);
+    console.log('solvedResponse:', solvedResponse);
+    console.log('likesResponse:', likesResponse);
+    console.log('badgesResponse:', badgesResponse);
 
     if (tagsResponse.error) {
       console.error('Tags fetch error:', tagsResponse.error);
@@ -61,27 +75,42 @@ export async function GET(request: Request) {
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
 
-    // 4. ユーザーが回答した質問と解決した質問の数を取得
-    const [answeredResponse, solvedResponse] = await Promise.all([
-      // ユーザーが回答した質問（全て）
-      supabase.from('answers').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      // ユーザーが解決した質問（ベストアンサー）
-      supabase.from('answers').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('is_best_answer', true)
-    ]);
-
-    // 5. バッジ情報を整形
+    // 4. バッジ情報を整形
     const badges = badgesResponse.data?.map((ub: any) => ({
       id: ub.badge_id,
       name: ub.badges.name,
       acquired: true
     })) || [];
 
-    // 6. レスポンスを返す
+    // 5. ポイント計算
+    const questionCount = questionsResponse.count || 0;
+    const answeredCount = answersResponse.count || 0;
+    const solvedCount = solvedResponse.count || 0;
+    const likedCount = likesResponse.count || 0;
+
+    const totalPoints = 
+      (questionCount * 5) +      // 質問: +5pt
+      (answeredCount * 10) +     // 回答: +10pt
+      (solvedCount * 50) +       // ベストアンサー: +50pt
+      (likedCount * 2);          // いいね: +2pt
+
+    // 6. DBのpointsカラムを更新
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ points: totalPoints })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error updating points:', updateError);
+    }
+
+    // 7. レスポンスを返す
     return NextResponse.json({
-      liked_count: likesResponse.count || 0,
-      best_answer_count: bestAnswersResponse.count || 0,
-      answered_count: answeredResponse.count || 0,
-      solved_count: solvedResponse.count || 0,
+      question_count: questionCount,
+      answered_count: answeredCount,
+      solved_count: solvedCount,
+      liked_count: likedCount,
+      points: totalPoints,
       badges: badges,
       tag_stats: tag_stats
     });

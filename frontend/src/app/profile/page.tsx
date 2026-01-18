@@ -25,30 +25,40 @@ export default function ProfilePage() {
           return;
         }
 
-        // 2. 基本情報をSupabaseから取得
-        const { data: baseData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        // 2. 基本情報をSupabaseから並列で取得
+        const [profileResponse, statsResponse] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single(),
+          fetch(`/api/profile/stats?userId=${user.id}`)
+        ]);
 
-        if (baseData) {
-          setProfile(baseData);
-          setLoading(false);
+        const { data: baseData } = profileResponse;
 
-          // 3. APIから詳細を非同期で取得
-          const response = await fetch(`/api/profile/stats?userId=${user.id}`);
-          if (response.ok) {
-            const detailData = await response.json();
-            setProfile((prev: any) => ({
-              ...prev,
-              ...detailData,
-              badgeData: detailData.badges
-            }));
-          }
-        } else {
+        if (!baseData) {
           setLoading(false);
+          return;
         }
+
+        // 3. APIからの詳細データを取得
+        let detailData = null;
+        if (statsResponse.ok) {
+          detailData = await statsResponse.json();
+          console.log('API Response:', detailData);
+        } else {
+          console.error('API Error:', statsResponse.status, await statsResponse.text());
+        }
+
+        // 4. 一度だけマージしてsetProfile
+        setProfile({
+          ...baseData,
+          ...detailData,
+          badgeData: detailData?.badges || []
+        });
+        setLoading(false);
+
       } catch (err) {
         console.error("エラーが発生しました:", err);
         setLoading(false);

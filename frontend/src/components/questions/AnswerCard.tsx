@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Award } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 import type { Answer } from "@/types/answer";
 import { MarkdownPreview } from "@/components/questions/MarkdownPreview";
@@ -40,11 +42,53 @@ type Props = {
 };
 
 export function AnswerCard({ answer, showBestAnswerButton, onSelectBestAnswer }: Props) {
+  const [isSettingBest, setIsSettingBest] = useState(false);
   const name = (answer.profiles?.username ?? "名無し").trim() || "名無し";
   const handle = `@${name}`;
   const initial = name.charAt(0) || "?";
   const rankName = answer.profiles?.ranks?.name ?? null;
   const time = formatRelativeTime(answer.created_at);
+
+  const handleSelectBestAnswer = async () => {
+    setIsSettingBest(true);
+    try {
+      // 1. ベストアンサーの前の状態を取得
+      const { data: prevAnswer } = await supabase
+        .from("answers")
+        .select("is_best_answer")
+        .eq("id", answer.id)
+        .single();
+
+      // 2. ベストアンサーを設定
+      const { error } = await supabase
+        .from("answers")
+        .update({ is_best_answer: true })
+        .eq("id", answer.id);
+
+      if (error) throw error;
+
+      // 3. API経由でこの回答の投稿者のポイントを加算
+      if (answer.profiles) {
+        try {
+          await fetch('/api/points/best-answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: answer.profiles.id, answerId: answer.id }),
+          });
+        } catch (error) {
+          console.error('Error adding best answer points:', error);
+        }
+      }
+
+      // 4. コールバック実行
+      onSelectBestAnswer?.();
+    } catch (error) {
+      console.error("Error setting best answer:", error);
+      alert("ベストアンサーの設定に失敗しました");
+    } finally {
+      setIsSettingBest(false);
+    }
+  };
 
   return (
     <Card className={`p-5 space-y-3 ${answer.is_best_answer ? "border-2 border-emerald-400 bg-emerald-50/30" : ""}`}>
@@ -90,11 +134,12 @@ export function AnswerCard({ answer, showBestAnswerButton, onSelectBestAnswer }:
           <Button
             variant="outline"
             size="sm"
-            onClick={onSelectBestAnswer}
+            onClick={handleSelectBestAnswer}
+            disabled={isSettingBest}
             className="gap-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50"
           >
             <Award className="h-4 w-4" />
-            ベストアンサーに選ぶ
+            {isSettingBest ? "設定中..." : "ベストアンサーに選ぶ"}
           </Button>
         </div>
       )}

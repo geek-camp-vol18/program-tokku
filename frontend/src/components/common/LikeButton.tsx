@@ -58,6 +58,17 @@ export function LikeButton({ questionId, initialLikeCount, onLikeChanged }: Prop
         setIsLiked(false);
         setLikeCount((prev) => prev - 1);
         onLikeChanged?.(likeCount - 1);
+        
+        // ポイント削除（API経由）
+        try {
+          await fetch('/api/points/like', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, isAdding: false }),
+          });
+        } catch (error) {
+          console.error('Error updating points:', error);
+        }
       }
     } else {
       // いいね追加
@@ -73,6 +84,25 @@ export function LikeButton({ questionId, initialLikeCount, onLikeChanged }: Prop
         setIsLiked(true);
         setLikeCount((prev) => prev + 1);
         onLikeChanged?.(likeCount + 1);
+        
+        // 質問の投稿者のポイント加算（API経由）
+        try {
+          const { data: question } = await supabase
+            .from("questions")
+            .select("user_id")
+            .eq("id", questionId)
+            .single();
+          
+          if (question) {
+            await fetch('/api/points/like', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: question.user_id, isAdding: true }),
+            });
+          }
+        } catch (error) {
+          console.error('Error adding points:', error);
+        }
       }
     }
 

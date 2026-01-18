@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lightbulb, Loader2, Trash2 } from "lucide-react";
+import { PointEarnedModal } from "@/components/points/PointEarnedModal";
 
 import Link from "next/link";
 
@@ -28,27 +29,50 @@ const CATEGORIES = ["バグ", "環境構築", "設計", "アルゴリズム", "�
 // 許可するファイルの拡張子
 const ALLOWED_EXTENSIONS = ['pdf', 'zip', 'txt', 'csv', 'xlsx', 'docx', 'pptx'];
 
+// 容量制限（MB）
+const MAX_FILE_SIZE_MB = 5; 
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export default function NewQuestionPage() {
   const router = useRouter();
-  
+
   // --- 状態管理 (State) ---
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [dbTags, setDbTags] = useState<{id: string, name: string}[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  
-  // 画像・ファイル管理
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // 画像・ファイル管理(複数に変更)
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<{name: string, url: string}[]>([]);
-  
-  // エディタブロック管理（これが消えていました！）
+
+  // ポイント獲得モーダル
+  const [showPointModal, setShowPointModal] = useState(false);
+
   const [blocks, setBlocks] = useState<EditorBlock[]>([
     { id: crypto.randomUUID(), type: "text", value: "" },
   ]);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- ログインチェック ---
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("質問を投稿するにはログインが必要です");
+        router.push("/login");
+        return;
+      }
+      setUserId(user.id);
+      setIsCheckingAuth(false);
+    };
+    checkAuth();
+  }, [router]);
 
   // --- 初期データ取得 ---
   useEffect(() => {
@@ -80,57 +104,77 @@ export default function NewQuestionPage() {
 
   // 画像アップロード
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
     setIsSubmitting(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random().toString(36).slice(2)}_${Date.now()}.${fileExt}`;
-      const { error } = await supabase.storage.from("question-images").upload(fileName, file);
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
-      
-      setImageUrl(publicUrl);
-      alert("画像を追加しました");
-    } catch (error: any) {
-      alert("画像アップロード失敗: " + error.message);
-    } finally {
-      setIsSubmitting(false);
-      if(e.target) e.target.value = "";
+    for (const file of Array.from(files)) {
+      try {
+        const fileExt = file.name.split(".").pop();
+        // 英数字のみの安全な名前を生成
+        const storageKey = `img_${Math.random().toString(36).slice(2)}_${Date.now()}.${fileExt}`;
+
+        const { error } = await supabase.storage
+          .from("question-images")
+          .upload(storageKey, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("question-images")
+          .getPublicUrl(storageKey);
+        
+        setImageUrls(prev => [...prev, publicUrl]);
+      } catch {
+        alert("画像のアップロードに失敗しました");
+      }
     }
+    setIsSubmitting(false);
+    if(e.target) e.target.value = "";
   };
 
   // ファイル添付
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const fileExt = file.name.split('.').pop()?.toLowerCase();
-    if (!fileExt || !ALLOWED_EXTENSIONS.includes(fileExt)) {
-      alert("許可されていないファイル形式です");
-      if(e.target) e.target.value = "";
+    setIsSubmitting(true);
+
+    for (const file of Array.from(files)) {
+
+      try {
+        // --- 💡 ここがポイント ---
+        const fileExt = file.name.split('.').pop();
+        const storageKey = `${Math.random().toString(36).slice(2)}_${Date.now()}.${fileExt}`;
+
+        const { error } = await supabase.storage
+          .from("question-images")
+          .upload(storageKey, file); // storageKey（英数字）で保存
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("question-images")
+          .getPublicUrl(storageKey);
+
+        // 表示用の名前（attachmentsのname）には、元の file.name（日本語OK）を使う
+        setAttachments(prev => [...prev, { name: file.name, url: publicUrl }]);
+        
+      } catch {
+        alert(`${file.name} のアップロードに失敗しました`);
+      }
+    }
+    setIsSubmitting(false);
+    if(e.target) e.target.value = "";
+  };
+  // --- 送信処理 ---
+  const handleSubmit = async () => {
+    if (!userId) {
+      alert("ログインが必要です");
+      router.push("/login");
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const fileName = `${Math.random().toString(36).slice(2)}_${file.name}`;
-      const { error } = await supabase.storage.from("question-images").upload(fileName, file);
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
-
-      setAttachments(prev => [...prev, { name: file.name, url: publicUrl }]);
-      alert("ファイルを添付しました");
-    } catch (error: any) {
-      alert("ファイルアップロード失敗: " + error.message);
-    } finally {
-      setIsSubmitting(false);
-      if(e.target) e.target.value = "";
-    }
-  };
-
-  // --- 送信処理 ---
-  const handleSubmit = async () => {
     if (!title || blocks[0].value === "" || selectedTagIds.length === 0) {
       alert("タイトル、詳細、およびタグの選択は必須です");
       return;
@@ -141,8 +185,10 @@ export default function NewQuestionPage() {
       .join("\n\n");
 
     // 画像とファイルの埋め込み
-    if (imageUrl) {
-      fullContent = `![添付画像](${imageUrl})\n\n` + fullContent;
+    if (imageUrls.length > 0) {
+      imageUrls.forEach((url, idx) => {
+        fullContent = `![添付画像${idx + 1}](${url})\n\n` + fullContent;
+      });
     }
     if (attachments.length > 0) {
       fullContent += "\n\n### 📎 添付ファイル\n";
@@ -153,15 +199,16 @@ export default function NewQuestionPage() {
 
     setIsSubmitting(true);
     try {
-      // 1. 質問本体の保存
+      // 1. 質問本体の保存（user_id追加、image_urlは最初の1枚またはnull）
       const { data: question, error: qError } = await supabase
         .from("questions")
-        .insert([{ 
+        .insert([{
           id: crypto.randomUUID(),
-          title, 
-          image_url: imageUrl,
+          user_id: userId,
+          title,
+          image_url: imageUrls.length > 0 ? imageUrls[0] : null,
           content: fullContent,
-          status: "open" 
+          status: "open"
         }])
         .select("id")
         .single();
@@ -181,17 +228,56 @@ export default function NewQuestionPage() {
 
       if (tError) throw tError;
 
-      alert("質問を投稿しました！");
-      router.push("/");
-    } catch (error: any) {
-      alert("エラーが発生しました: " + error.message);
+      // 3. ポイント付与（+5pt）
+      const { error: pointError } = await supabase.rpc("increment_points", {
+        user_id: userId,
+        amount: 5
+      });
+
+      // ポイント付与エラーは警告のみ（質問投稿自体は成功させる）
+      if (pointError) {
+        console.error("ポイント付与エラー:", pointError.message);
+      }
+
+      // ポイント獲得モーダルを表示
+      setShowPointModal(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "不明なエラー";
+      alert("エラーが発生しました: " + message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // モーダルを閉じてホームへ遷移
+  const handleModalClose = () => {
+    setShowPointModal(false);
+    router.push("/");
+  };
+
   // --- JSX (画面表示) ---
+
+  // ログインチェック中は何も表示しない
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-muted font-sans text-foreground">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
   return (
+    <>
+      {/* ポイント獲得モーダル */}
+      <PointEarnedModal
+        isOpen={showPointModal}
+        onClose={handleModalClose}
+        points={5}
+        message="質問を投稿しました！"
+      />
     <div className="min-h-screen bg-muted font-sans text-foreground">
       <Header />
       <div className="mx-auto flex w-full max-w-7xl">
@@ -242,16 +328,29 @@ export default function NewQuestionPage() {
                                 />
                                 
                                 {/* 画像プレビュー */}
-                                {index === 0 && imageUrl && (
-                                  <div className="relative border rounded-md overflow-hidden bg-muted/30 mx-2 my-2 p-2 group/image">
-                                    <img src={imageUrl} alt="添付画像" className="max-h-[300px] w-auto rounded object-contain mx-auto" />
-                                    <Button
-                                      type="button" variant="destructive" size="icon"
-                                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover/image:opacity-100 transition-opacity z-10"
-                                      onClick={() => setImageUrl(null)}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                                {/* 画像プレビュー：1番目のテキストブロックで、画像が1枚以上ある場合 */}
+                                {index === 0 && imageUrls.length > 0 && (
+                                  // 複数の画像を横並び（wrap）にするコンテナ
+                                  <div className="flex flex-wrap gap-2 mx-2 my-2">
+                                    {/* 配列 imageUrls をループして、1枚ずつ表示 */}
+                                    {imageUrls.map((url, imgIdx) => (
+                                      <div key={imgIdx} className="relative group/image border rounded-md overflow-hidden bg-muted/30 h-[150px]">
+                                        <img 
+                                          src={url} // ← ここは個別の「url」を使う
+                                          alt={`添付画像-${imgIdx + 1}`}
+                                          className="h-full w-auto object-contain mx-auto" 
+                                        />
+                                        {/* 削除ボタン */}
+                                        <Button
+                                          type="button" variant="destructive" size="icon"
+                                          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover/image:opacity-100 transition-opacity z-10"
+                                          // ★ここが重要：クリックされた画像のインデックス(imgIdx)以外を残すことで削除する
+                                          onClick={() => setImageUrls(prev => prev.filter((_, i) => i !== imgIdx))}
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ))}
                                   </div>
                                 )}
 
@@ -297,8 +396,8 @@ export default function NewQuestionPage() {
                       </div>
 
                       {/* 隠しinput */}
-                      <input type="file" ref={imageInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                      <input type="file" ref={imageInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
+                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} multiple className="hidden" />
 
                       {/* ツールバー */}
                       <PostToolbar 
@@ -382,5 +481,6 @@ export default function NewQuestionPage() {
         </main>
       </div>
     </div>
+    </>
   );
 }
