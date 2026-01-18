@@ -15,6 +15,7 @@ export const dummyQuestions: QuestionListItem[] = [
       "Genericsを使った関数を書いているのですが、`Type 'T' is not assignable to type 'string'` というエラーが出て困っています。どこを直せば良いでしょうか？",
     image_url: null,
     status: "open",
+    category: "バグ",
     created_at: isoHoursAgo(3),
 
     answer_count: 2,
@@ -35,6 +36,7 @@ export const dummyQuestions: QuestionListItem[] = [
       "selectの書き方が悪いのか data が null になります。RLSや権限設定も影響しますか？最低限のチェックポイントを知りたいです。",
     image_url: null,
     status: "open",
+    category: "環境構築",
     created_at: isoHoursAgo(10),
 
     answer_count: 0,
@@ -55,6 +57,7 @@ export const dummyQuestions: QuestionListItem[] = [
       "依存配列に何を入れるべきかで無限ループになったりします。基本ルールとよくあるミスを教えてください。",
     image_url: null,
     status: "closed",
+    category: null,
     created_at: isoHoursAgo(30),
 
     answer_count: 4,

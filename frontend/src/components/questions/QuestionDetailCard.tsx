@@ -48,14 +48,22 @@ export function QuestionDetailCard({ question, tags, answerCount, likeCount, ask
 
   return (
     <Card className="p-6">
-      {/* ステータスバッジ */}
-      <div className="flex items-center justify-between">
+      {/* ステータスバッジ・カテゴリバッジ */}
+      <div className="flex items-center gap-2">
         <Badge
           variant="outline"
           className={["rounded-full", statusBadgeClass(question.status)].join(" ")}
         >
           {statusText(question.status)}
         </Badge>
+        {question.category && (
+          <Badge
+            variant="outline"
+            className="rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+          >
+            {question.category}
+          </Badge>
+        )}
       </div>
 
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">{question.title}</h1>

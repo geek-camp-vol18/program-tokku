@@ -34,6 +34,7 @@ type QuestionRowJoined = {
   content: string;
   image_url: string | null;
   status: Question["status"];
+  category: string | null;
   created_at: string;
 
   profiles: ProfileJoined | null;
@@ -66,6 +67,7 @@ function toListItem(row: QuestionRowJoined): QuestionListItem {
     content: row.content,
     image_url: row.image_url ?? null,
     status: row.status,
+    category: row.category ?? null,
     created_at: row.created_at,
 
     answer_count,
@@ -165,6 +167,7 @@ export function useQuestions(args: {
           content,
           image_url,
           status,
+          category,
           created_at,
 
           profiles (
