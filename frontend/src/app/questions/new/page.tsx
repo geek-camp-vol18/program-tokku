@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Lightbulb, Loader2, Trash2, X } from "lucide-react";
+import { Lightbulb, Loader2, Trash2 } from "lucide-react";
+import { PointEarnedModal } from "@/components/points/PointEarnedModal";
 
 import Link from "next/link";
 
@@ -34,24 +35,44 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 export default function NewQuestionPage() {
   const router = useRouter();
-  
+
   // --- 状態管理 (State) ---
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [dbTags, setDbTags] = useState<{id: string, name: string}[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  
+
   // 画像・ファイル管理(複数に変更)
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<{name: string, url: string}[]>([]);
-  
+
+  // ポイント獲得モーダル
+  const [showPointModal, setShowPointModal] = useState(false);
+
   const [blocks, setBlocks] = useState<EditorBlock[]>([
     { id: crypto.randomUUID(), type: "text", value: "" },
   ]);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- ログインチェック ---
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("質問を投稿するにはログインが必要です");
+        router.push("/login");
+        return;
+      }
+      setUserId(user.id);
+      setIsCheckingAuth(false);
+    };
+    checkAuth();
+  }, [router]);
 
   // --- 初期データ取得 ---
   useEffect(() => {
@@ -104,7 +125,7 @@ export default function NewQuestionPage() {
           .getPublicUrl(storageKey);
         
         setImageUrls(prev => [...prev, publicUrl]);
-      } catch (error: any) {
+      } catch {
         alert("画像のアップロードに失敗しました");
       }
     }
@@ -139,7 +160,7 @@ export default function NewQuestionPage() {
         // 表示用の名前（attachmentsのname）には、元の file.name（日本語OK）を使う
         setAttachments(prev => [...prev, { name: file.name, url: publicUrl }]);
         
-      } catch (error: any) {
+      } catch {
         alert(`${file.name} のアップロードに失敗しました`);
       }
     }
@@ -148,6 +169,12 @@ export default function NewQuestionPage() {
   };
   // --- 送信処理 ---
   const handleSubmit = async () => {
+    if (!userId) {
+      alert("ログインが必要です");
+      router.push("/login");
+      return;
+    }
+
     if (!title || blocks[0].value === "" || selectedTagIds.length === 0) {
       alert("タイトル、詳細、およびタグの選択は必須です");
       return;
@@ -158,8 +185,10 @@ export default function NewQuestionPage() {
       .join("\n\n");
 
     // 画像とファイルの埋め込み
-    if (imageUrls) {
-      fullContent = `![添付画像](${imageUrls})\n\n` + fullContent;
+    if (imageUrls.length > 0) {
+      imageUrls.forEach((url, idx) => {
+        fullContent = `![添付画像${idx + 1}](${url})\n\n` + fullContent;
+      });
     }
     if (attachments.length > 0) {
       fullContent += "\n\n### 📎 添付ファイル\n";
@@ -170,15 +199,16 @@ export default function NewQuestionPage() {
 
     setIsSubmitting(true);
     try {
-      // 1. 質問本体の保存
+      // 1. 質問本体の保存（user_id追加、image_urlは最初の1枚またはnull）
       const { data: question, error: qError } = await supabase
         .from("questions")
-        .insert([{ 
+        .insert([{
           id: crypto.randomUUID(),
-          title, 
-          image_url: imageUrls,
+          user_id: userId,
+          title,
+          image_url: imageUrls.length > 0 ? imageUrls[0] : null,
           content: fullContent,
-          status: "open" 
+          status: "open"
         }])
         .select("id")
         .single();
@@ -198,17 +228,56 @@ export default function NewQuestionPage() {
 
       if (tError) throw tError;
 
-      alert("質問を投稿しました！");
-      router.push("/");
-    } catch (error: any) {
-      alert("エラーが発生しました: " + error.message);
+      // 3. ポイント付与（+5pt）
+      const { error: pointError } = await supabase.rpc("increment_points", {
+        user_id: userId,
+        amount: 5
+      });
+
+      // ポイント付与エラーは警告のみ（質問投稿自体は成功させる）
+      if (pointError) {
+        console.error("ポイント付与エラー:", pointError.message);
+      }
+
+      // ポイント獲得モーダルを表示
+      setShowPointModal(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "不明なエラー";
+      alert("エラーが発生しました: " + message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // モーダルを閉じてホームへ遷移
+  const handleModalClose = () => {
+    setShowPointModal(false);
+    router.push("/");
+  };
+
   // --- JSX (画面表示) ---
+
+  // ログインチェック中は何も表示しない
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-muted font-sans text-foreground">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
   return (
+    <>
+      {/* ポイント獲得モーダル */}
+      <PointEarnedModal
+        isOpen={showPointModal}
+        onClose={handleModalClose}
+        points={5}
+        message="質問を投稿しました！"
+      />
     <div className="min-h-screen bg-muted font-sans text-foreground">
       <Header />
       <div className="mx-auto flex w-full max-w-7xl">
@@ -412,5 +481,6 @@ export default function NewQuestionPage() {
         </main>
       </div>
     </div>
+    </>
   );
 }
