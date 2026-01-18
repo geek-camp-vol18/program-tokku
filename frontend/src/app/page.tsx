@@ -58,7 +58,7 @@ export default function Home() {
               <h1 className="text-2xl font-bold">質問一覧</h1>
 
               <Input
-                className="max-w-xl bg-card"
+                className="max-w-xl bg-card focus-visible:ring-primary"
                 placeholder="キーワードで質問を検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
