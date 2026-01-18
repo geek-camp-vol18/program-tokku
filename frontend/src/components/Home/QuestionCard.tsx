@@ -1,20 +1,17 @@
 "use client";
 
-// 質問一覧のカードコンポーネント
 import type { QuestionListItem } from "@/components/Home/homeTypes";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { LikeButton } from "@/components/common/LikeButton";
 
-// 抜粋を作成
 function makeExcerpt(content: string, maxLen = 90): string {
   const oneLine = (content ?? "").replace(/\s+/g, " ").trim();
   if (!oneLine) return "";
   return oneLine.length > maxLen ? oneLine.slice(0, maxLen) + "…" : oneLine;
 }
 
-// 相対時間をフォーマット
 function formatRelativeTime(iso: string): string {
   const d = new Date(iso);
   const ms = d.getTime();
@@ -30,12 +27,11 @@ function formatRelativeTime(iso: string): string {
   return `${diffDay}日前`;
 }
 
-// ステータスの表示テキスト
 function statusText(status: QuestionListItem["status"]) {
   return status === "open" ? "回答募集中" : "解決済み";
 }
 
-// ステータスクラス
+// ステータスに合わせた色
 function toneClass(status: QuestionListItem["status"]) {
   return status === "open"
     ? {
@@ -49,7 +45,6 @@ function toneClass(status: QuestionListItem["status"]) {
         num: "text-emerald-700",
       };
 }
-
 
 type Props = {
   question: QuestionListItem;
@@ -143,7 +138,7 @@ export function QuestionCard({ question }: Props) {
             ))}
           </div>
 
-          {/* 下段：ユーザー情報 + 右にいいね数 */}
+          {/* 下段：ユーザー情報 */}
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
@@ -169,9 +164,9 @@ export function QuestionCard({ question }: Props) {
               </div>
             </div>
 
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Heart className="h-4 w-4" />
-              <span className="tabular-nums">{question.like_count}</span>
+            {/* いいね */}
+            <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+              <LikeButton questionId={question.id} initialLikeCount={question.like_count} />
             </div>
           </div>
         </div>
