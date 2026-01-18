@@ -14,6 +14,7 @@ import { Loader2, Paperclip, Code, Send, Image, FileText } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 import { AnswerCard, type AnswerRow } from "@/components/questions/AnswerCard";
+import { PointEarnedModal } from "@/components/points/PointEarnedModal";
 
 type Props = {
   questionId: string;
@@ -56,6 +57,7 @@ export function AnswerSection({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showPointModal, setShowPointModal] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -189,20 +191,42 @@ export function AnswerSection({
       return;
     }
 
-    // 成功
+    // ポイント付与（+10pt）
+    const { error: pointError } = await supabase.rpc("increment_points", {
+      user_id: userData.user.id,
+      amount: 10,
+    });
+
+    if (pointError) {
+      console.error("ポイント付与エラー:", pointError.message);
+    }
+
+    // 成功 - モーダルを先に表示（onAnswerPostedはモーダルを閉じた後に呼ぶ）
     setContent("");
     setIsSubmitting(false);
-    onAnswerPosted();
+    setShowPointModal(true);
   };
 
   const isQuestionOwner = currentUserId === questionUserId;
   const hasBestAnswer = answers.some((a) => a.is_best_answer);
 
   return (
-    <div className="space-y-4">
-      <div className="text-sm font-medium text-muted-foreground">
-        回答（{answers.length}件）
-      </div>
+    <>
+      {/* ポイント獲得モーダル */}
+      <PointEarnedModal
+        isOpen={showPointModal}
+        onClose={() => {
+          setShowPointModal(false);
+          onAnswerPosted(); // モーダルを閉じた後にデータ再取得
+        }}
+        points={10}
+        message="回答を投稿しました！"
+      />
+
+      <div className="space-y-4">
+        <div className="text-sm font-medium text-muted-foreground">
+          回答（{answers.length}件）
+        </div>
 
       {answers.length === 0 ? (
         <Card className="p-5 text-sm text-muted-foreground">まだ回答はありません</Card>
@@ -316,6 +340,7 @@ export function AnswerSection({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 }
