@@ -78,7 +78,7 @@ export default async function CategoryTagPage({ params }: PageProps) {
 
   // データを表示用に整形
   const questions: QuestionWithDetails[] = (questionsData ?? []).map((q) => {
-    const profile = q.profiles as { username: string; avatar_url: string | null; ranks: { name: string } | null } | null;
+    const profile = q.profiles as unknown as { username: string; avatar_url: string | null; ranks: { name: string } | null } | null;
     const questionTags = q.question_tags as unknown as { tags: { name: string } | null }[];
     const likes = q.likes as { id: string }[];
     const answers = q.answers as { id: string }[];
