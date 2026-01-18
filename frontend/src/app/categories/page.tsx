@@ -31,23 +31,34 @@ interface TagWithCount extends Tag {
 }
 
 export default async function CategoriesPage() {
-  // Supabaseからタグ一覧を取得
+  // Supabaseからタグ一覧と質問数を取得
   const { data: tagsData, error } = await supabase
     .from("tags")
-    .select("*");
+    .select(`
+      *,
+      question_tags(count)
+    `);
 
   if (error) {
     console.error("Error fetching tags:", error.message);
   }
 
-  // TODO: 質問数は後でquestion_tagsからカウントする
-  const tags: TagWithCount[] = (tagsData ?? []).map((tag) => ({
-    ...tag,
-    questionCount: 0, // モック値（後で実装）
-  }));
+  // 質問数を含む形式に変換
+  const tags: TagWithCount[] = (tagsData ?? []).map((tag) => {
+    const countData = tag.question_tags as unknown as { count: number }[] | null;
+    const questionCount = countData?.[0]?.count ?? 0;
+    return {
+      id: tag.id,
+      name: tag.name,
+      color: tag.color,
+      questionCount,
+    };
+  });
 
-  // 人気カテゴリ（質問数上位5件）- 現在はモックなので先頭5件
-  const popularTags = tags.slice(0, 5);
+  // 人気カテゴリ（質問数上位5件）
+  const popularTags = [...tags]
+    .sort((a, b) => b.questionCount - a.questionCount)
+    .slice(0, 5);
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto">
       <div className="flex gap-8">
